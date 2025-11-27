@@ -1,0 +1,37 @@
+{
+  "name": "@subflag/api-types",
+  "version": "0.2.0",
+  "description": "TypeScript type definitions for Subflag SDK",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "subflag",
+    "types",
+    "typescript",
+    "feature-flags"
+  ],
+  "author": "Subflag",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

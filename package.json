@@ -1,0 +1,21 @@
+{
+  "name": "@subflag/sdk-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "OpenFeature providers for Subflag",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

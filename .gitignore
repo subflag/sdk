@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Generated files
+packages/api-types/src/generated.ts
+
+# Editor
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

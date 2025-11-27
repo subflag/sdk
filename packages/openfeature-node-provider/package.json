@@ -1,0 +1,48 @@
+{
+  "name": "@subflag/openfeature-node-provider",
+  "version": "0.1.0",
+  "description": "OpenFeature Node.js provider for Subflag feature flags",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && node scripts/build-cjs.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'Linting not yet configured'",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "openfeature",
+    "feature-flags",
+    "subflag",
+    "nodejs",
+    "server"
+  ],
+  "author": "Subflag",
+  "license": "MIT",
+  "peerDependencies": {
+    "@openfeature/server-sdk": "^1.0.0"
+  },
+  "dependencies": {
+    "@subflag/api-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@openfeature/server-sdk": "^1.13.0",
+    "@types/node": "^20.11.5",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.1"
+  }
+}
