@@ -9,10 +9,11 @@ OpenFeature provider for [Subflag](https://subflag.com) feature flags, built for
 ```kotlin
 repositories {
     mavenCentral()
+    maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {
-    implementation("com.subflag:openfeature-kotlin-provider:0.1.0")
+    implementation("com.github.subflag:openfeature-kotlin-provider:kotlin-sdk-v0.1.0")
 }
 ```
 
@@ -21,20 +22,28 @@ dependencies {
 ```groovy
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    implementation 'com.subflag:openfeature-kotlin-provider:0.1.0'
+    implementation 'com.github.subflag:openfeature-kotlin-provider:kotlin-sdk-v0.1.0'
 }
 ```
 
 ### Maven
 
 ```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
 <dependency>
-    <groupId>com.subflag</groupId>
+    <groupId>com.github.subflag</groupId>
     <artifactId>openfeature-kotlin-provider</artifactId>
-    <version>0.1.0</version>
+    <version>kotlin-sdk-v0.1.0</version>
 </dependency>
 ```
 
@@ -206,7 +215,7 @@ if (details.errorCode != null) {
 
 ## Requirements
 
-- JDK 11+
+- JDK 17+
 - Kotlin 1.9+ (for Kotlin projects)
 
 ## License
