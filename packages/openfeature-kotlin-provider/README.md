@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.subflag:openfeature-kotlin-provider:kotlin-sdk-v0.1.0")
+    implementation("com.github.subflag.sdk:openfeature-kotlin-provider:kotlin-sdk-v0.1.0")
 }
 ```
 
@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.subflag:openfeature-kotlin-provider:kotlin-sdk-v0.1.0'
+    implementation 'com.github.subflag.sdk:openfeature-kotlin-provider:kotlin-sdk-v0.1.0'
 }
 ```
 
@@ -41,7 +41,7 @@ dependencies {
 </repositories>
 
 <dependency>
-    <groupId>com.github.subflag</groupId>
+    <groupId>com.github.subflag.sdk</groupId>
     <artifactId>openfeature-kotlin-provider</artifactId>
     <version>kotlin-sdk-v0.1.0</version>
 </dependency>

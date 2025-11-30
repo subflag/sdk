@@ -53,11 +53,12 @@ tasks.test {
 }
 
 // JitPack publishing - builds automatically from GitHub tags
+// Coordinates: com.github.subflag.sdk:openfeature-kotlin-provider:TAG
 publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
-            groupId = "com.github.subflag.subflag"
+            groupId = "com.github.subflag.sdk"
             artifactId = "openfeature-kotlin-provider"
         }
     }
