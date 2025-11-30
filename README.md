@@ -35,7 +35,8 @@ const provider = new SubflagWebProvider({
 await OpenFeature.setProviderAndWait(provider);
 const client = OpenFeature.getClient();
 
-const enabled = await client.getBooleanValue('new-feature', false);
+// Flags are cached - synchronous evaluation, no network call
+const enabled = client.getBooleanValue('new-feature', false);
 ```
 
 ### Node.js/Server (Express, Fastify, etc.)
@@ -53,10 +54,10 @@ const provider = new SubflagNodeProvider({
   apiKey: 'sdk-prod-...',
 });
 
-OpenFeature.setProvider(provider);
-await OpenFeature.ready();
+await OpenFeature.setProviderAndWait(provider);
 const client = OpenFeature.getClient();
 
+// Each evaluation makes an API call - always gets latest value
 const enabled = await client.getBooleanValue('new-feature', false);
 ```
 
@@ -111,7 +112,7 @@ All providers support the five OpenFeature value types:
 4. **Generate an API key** (Settings → Applications → Create)
 5. **Install an SDK** and start evaluating flags
 
-API keys follow the format `sdk-{environment}-{random}` and are scoped to a specific project and environment.
+API keys follow the format `sdk-{environment}-{app-name}-{random}` and are scoped to a specific project and environment.
 
 ## Documentation
 

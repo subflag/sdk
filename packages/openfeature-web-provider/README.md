@@ -25,7 +25,7 @@ import { SubflagWebProvider } from '@subflag/openfeature-web-provider';
 // Initialize the provider
 const provider = new SubflagWebProvider({
   apiUrl: 'http://localhost:8080',
-  apiKey: 'sdk-prod-your-api-key-here',
+  apiKey: 'sdk-production-my-app-your-key-here',
 });
 
 // Set provider and wait for it to be ready
@@ -34,11 +34,11 @@ await OpenFeature.setProviderAndWait(provider);
 // Get a client
 const client = OpenFeature.getClient();
 
-// Evaluate flags
-const isEnabled = await client.getBooleanValue('new-feature', false);
-const bannerText = await client.getStringValue('banner-text', 'Welcome!');
-const maxItems = await client.getNumberValue('max-items', 10);
-const config = await client.getObjectValue('ui-config', { theme: 'light' });
+// Evaluate flags - synchronous, no network call!
+const isEnabled = client.getBooleanValue('new-feature', false);
+const bannerText = client.getStringValue('banner-text', 'Welcome!');
+const maxItems = client.getNumberValue('max-items', 10);
+const config = client.getObjectValue('ui-config', { theme: 'light' });
 ```
 
 ## Configuration
@@ -53,16 +53,7 @@ const config = await client.getObjectValue('ui-config', { theme: 'light' });
 
 ## Getting an API Key
 
-1. Navigate to your Subflag dashboard
-2. Select your project and environment
-3. Go to the "Applications" tab
-4. Click "Create Application"
-5. Copy the API key (shown only once!)
-
-The API key format is `sdk-{environment}-{random}`, for example:
-```
-sdk-prod-xQ7mK9nP2wR5tY8uI1oA3sD4fG6hJ0
-```
+See [Team Management → API Keys](https://docs.subflag.com/admin/team-management#api-keys) in the docs for instructions on creating API keys.
 
 ## How It Works: Flag Caching
 
@@ -163,10 +154,10 @@ The provider handles errors gracefully and returns default values when:
 const client = OpenFeature.getClient();
 
 // If 'missing-flag' doesn't exist, returns false
-const value = await client.getBooleanValue('missing-flag', false);
+const value = client.getBooleanValue('missing-flag', false);
 
 // You can also get detailed evaluation information
-const details = await client.getBooleanDetails('my-flag', false);
+const details = client.getBooleanDetails('my-flag', false);
 console.log(details.reason); // 'STATIC', 'DEFAULT', or 'ERROR'
 console.log(details.variant); // Variant name (e.g., 'control', 'treatment')
 console.log(details.errorCode); // Error code if reason is 'ERROR'

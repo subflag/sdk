@@ -22,8 +22,7 @@ import type { SubflagProviderConfig } from './types';
  *   apiKey: 'sdk-prod-...'
  * });
  *
- * OpenFeature.setProvider(provider);
- * await OpenFeature.ready();
+ * await OpenFeature.setProviderAndWait(provider);
  *
  * const client = OpenFeature.getClient();
  * const enabled = await client.getBooleanValue('my-flag', false);
