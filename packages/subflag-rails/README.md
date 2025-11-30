@@ -1,0 +1,245 @@
+# Subflag Rails
+
+Typed feature flags for Rails. Booleans, strings, numbers, and JSON — all targetable by user.
+
+## Installation
+
+Add to your Gemfile:
+
+```ruby
+gem 'subflag-rails'
+```
+
+Run the generator:
+
+```bash
+rails generate subflag:install
+```
+
+Add your API key to Rails credentials:
+
+```bash
+rails credentials:edit
+```
+
+```yaml
+subflag:
+  api_key: sdk-production-your-key-here
+```
+
+Or set the `SUBFLAG_API_KEY` environment variable.
+
+## Usage
+
+### Controllers & Views
+
+Helpers are automatically available and scoped to `current_user`:
+
+```ruby
+# Controller
+class ProjectsController < ApplicationController
+  def index
+    if subflag_enabled?(:new_dashboard)
+      # show new dashboard
+    end
+
+    @max_projects = subflag_value(:max_projects, default: 3)
+  end
+end
+```
+
+```erb
+<!-- View -->
+<% if subflag_enabled?(:new_checkout) %>
+  <%= render "new_checkout" %>
+<% end %>
+
+<h1><%= subflag_value(:headline, default: "Welcome") %></h1>
+
+<p>You can create <%= subflag_value(:max_projects, default: 3) %> projects</p>
+```
+
+### Flag Accessor DSL
+
+For multiple flag checks, use the flag accessor:
+
+```ruby
+flags = subflag_for  # auto-scoped to current_user
+
+if flags.beta_feature?
+  headline = flags.welcome_message(default: "Hello!")
+  max = flags.max_projects(default: 3)
+end
+```
+
+Or use `Subflag.flags` directly:
+
+```ruby
+# With user context
+flags = Subflag.flags(user: current_user)
+flags.new_checkout?              # => true/false
+flags.max_projects(default: 3)   # => 100
+
+# Bracket access for exact flag names
+flags["my-exact-flag", default: "value"]
+
+# Full evaluation details
+result = flags.evaluate(:max_projects, default: 3)
+result.value    # => 100
+result.variant  # => "premium"
+result.reason   # => :targeting_match
+```
+
+### Flag Types
+
+The default value determines the expected type:
+
+```ruby
+# Boolean (? suffix, default optional)
+subflag_enabled?(:new_checkout)           # default: false
+subflag_enabled?(:new_checkout, default: true)
+
+# String
+subflag_value(:headline, default: "Welcome")
+
+# Integer
+subflag_value(:max_projects, default: 3)
+
+# Float
+subflag_value(:tax_rate, default: 0.08)
+
+# Hash/Object
+subflag_value(:feature_limits, default: { max_items: 10 })
+```
+
+### User Targeting
+
+Configure how to extract context from user objects:
+
+```ruby
+# config/initializers/subflag.rb
+Subflag::Rails.configure do |config|
+  config.user_context do |user|
+    {
+      targeting_key: user.id.to_s,
+      email: user.email,
+      plan: user.subscription&.plan_name || "free",
+      admin: user.admin?
+    }
+  end
+end
+```
+
+Now flags can return different values based on user attributes:
+
+```ruby
+# In Subflag dashboard: max-projects returns 3 for "free", 100 for "premium"
+subflag_value(:max_projects, default: 3)  # => 3 or 100 based on user's plan
+```
+
+### Override User Context
+
+```ruby
+# No user context
+subflag_enabled?(:public_feature, user: nil)
+
+# Different user
+subflag_value(:max_projects, user: admin_user, default: 3)
+```
+
+## Flag Naming
+
+Flag names use lowercase letters, numbers, and dashes:
+- Valid: `new-checkout`, `max-api-requests`, `feature1`
+- Invalid: `new_checkout`, `NewCheckout`, `my flag`
+
+In Ruby, use underscores — they're automatically converted to dashes:
+
+```ruby
+subflag_enabled?(:new_checkout)  # looks up "new-checkout"
+```
+
+## Testing
+
+Stub flags in your tests:
+
+```ruby
+# spec/rails_helper.rb (RSpec)
+require "subflag/rails/test_helpers"
+RSpec.configure do |config|
+  config.include Subflag::Rails::TestHelpers
+end
+
+# test/test_helper.rb (Minitest)
+require "subflag/rails/test_helpers"
+class ActiveSupport::TestCase
+  include Subflag::Rails::TestHelpers
+end
+```
+
+```ruby
+# In your specs/tests
+it "shows new checkout when enabled" do
+  stub_subflag(:new_checkout, true)
+  stub_subflag(:max_projects, 100)
+
+  visit checkout_path
+  expect(page).to have_content("New Checkout")
+end
+
+# Stub multiple at once
+stub_subflags(
+  new_checkout: true,
+  max_projects: 100,
+  headline: "Welcome!"
+)
+```
+
+## Request Caching
+
+Enable per-request caching to avoid multiple API calls for the same flag:
+
+```ruby
+# config/application.rb
+config.middleware.use Subflag::Rails::RequestCache::Middleware
+```
+
+Now multiple checks for the same flag in one request hit the API only once:
+
+```ruby
+# Without caching: 3 API calls
+# With caching: 1 API call (cached for subsequent checks)
+subflag_enabled?(:new_checkout)  # API call
+subflag_enabled?(:new_checkout)  # Cache hit
+subflag_enabled?(:new_checkout)  # Cache hit
+```
+
+## Configuration
+
+```ruby
+Subflag::Rails.configure do |config|
+  # API key (auto-loaded from credentials/ENV)
+  config.api_key = "sdk-production-..."
+
+  # API URL (default: https://api.subflag.com)
+  config.api_url = "https://api.subflag.com"
+
+  # Logging
+  config.logging_enabled = Rails.env.development?
+  config.log_level = :debug  # :debug, :info, :warn
+
+  # User context
+  config.user_context do |user|
+    { targeting_key: user.id.to_s, plan: user.plan }
+  end
+end
+```
+
+## Documentation
+
+- [Subflag Docs](https://docs.subflag.com)
+- [Rails Guide](https://docs.subflag.com/rails)
+
+## License
+
+MIT
