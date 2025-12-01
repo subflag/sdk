@@ -59,7 +59,7 @@ module Subflag
       def setup_provider
         return unless configuration.api_key
 
-        provider = ::Subflag::OpenFeature::Provider.new(
+        provider = ::Subflag::Provider.new(
           api_key: configuration.api_key,
           api_url: configuration.api_url
         )
