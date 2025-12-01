@@ -1,10 +1,10 @@
 PATH
   remote: .
   specs:
-    subflag-rails (0.1.0)
+    subflag-rails (0.2.0)
       actionview (>= 6.1)
       railties (>= 6.1)
-      subflag-openfeature-provider (~> 0.1)
+      subflag-openfeature-provider (>= 0.1, < 1.0)
 
 GEM
   remote: https://rubygems.org/

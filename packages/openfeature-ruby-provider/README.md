@@ -19,7 +19,7 @@ bundle add subflag-openfeature-provider
 ### With OpenFeature SDK
 
 ```ruby
-require "openfeature/sdk"
+require "open_feature/sdk"
 require "subflag"
 
 # Configure the provider
