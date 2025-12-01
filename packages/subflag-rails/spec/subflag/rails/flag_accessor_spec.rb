@@ -31,8 +31,10 @@ RSpec.describe Subflag::Rails::FlagAccessor do
       end
 
       it "uses default: false when not specified" do
-        stub_request(:post, %r{/sdk/evaluate/new-checkout})
-          .to_return(status: 404, body: { error: "not found" }.to_json)
+        # When flag not found, OpenFeature returns the default value
+        mock_client = double("OpenFeatureClient")
+        allow(OpenFeature::SDK).to receive(:build_client).and_return(mock_client)
+        allow(mock_client).to receive(:fetch_boolean_value).and_return(false)
 
         flags = described_class.new
         expect(flags.new_checkout?).to be false
@@ -113,12 +115,16 @@ RSpec.describe Subflag::Rails::FlagAccessor do
         end
       end
 
-      stub_request(:post, %r{/sdk/evaluate/new-checkout})
-        .with(body: hash_including("targetingKey" => "123"))
-        .to_return(
-          status: 200,
-          body: { flagKey: "new-checkout", value: true, reason: "TARGETING_MATCH" }.to_json
-        )
+      mock_client = double("OpenFeatureClient")
+      allow(OpenFeature::SDK).to receive(:build_client).and_return(mock_client)
+
+      # Verify context is passed with targeting_key
+      expect(mock_client).to receive(:fetch_boolean_value) do |args|
+        ctx = args[:evaluation_context]
+        expect(ctx).to be_a(OpenFeature::SDK::EvaluationContext)
+        expect(ctx.targeting_key).to eq("123")
+        true
+      end
 
       flags = described_class.new(user: user)
       expect(flags.new_checkout?).to be true

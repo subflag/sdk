@@ -60,19 +60,25 @@ RSpec.configure do |config|
   end
 end
 
-# Test helpers
+# Test helpers - mock at OpenFeature client level
 def stub_flag_evaluation(flag_key:, value:, variant: "default", reason: "DEFAULT")
-  stub_request(:post, %r{/sdk/evaluate/#{flag_key}})
-    .to_return(
-      status: 200,
-      body: {
-        flagKey: flag_key,
-        value: value,
-        variant: variant,
-        reason: reason
-      }.to_json,
-      headers: { "Content-Type" => "application/json" }
-    )
+  mock_client = double("OpenFeatureClient")
+  allow(OpenFeature::SDK).to receive(:build_client).and_return(mock_client)
+
+  # All fetch_*_value methods return the value directly
+  allow(mock_client).to receive(:fetch_boolean_value).and_return(value)
+  allow(mock_client).to receive(:fetch_string_value).and_return(value)
+  allow(mock_client).to receive(:fetch_integer_value).and_return(value)
+  allow(mock_client).to receive(:fetch_float_value).and_return(value)
+  allow(mock_client).to receive(:fetch_object_value).and_return(value)
+
+  # All fetch_*_details methods return EvaluationDetails
+  details = { value: value, variant: variant, reason: reason.downcase.to_sym, flag_key: flag_key }
+  allow(mock_client).to receive(:fetch_boolean_details).and_return(details)
+  allow(mock_client).to receive(:fetch_string_details).and_return(details)
+  allow(mock_client).to receive(:fetch_integer_details).and_return(details)
+  allow(mock_client).to receive(:fetch_float_details).and_return(details)
+  allow(mock_client).to receive(:fetch_object_details).and_return(details)
 end
 
 def configure_subflag(api_key: "sdk-test-key")
