@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "open_feature/sdk"
+
 module Subflag
   # OpenFeature provider for Subflag feature flag management.
   #
@@ -136,12 +138,12 @@ module Subflag
       # Convert value if needed (e.g., number -> integer)
       converted_value = convert_value(result.value, expected_type)
 
-      {
+      OpenFeature::SDK::Provider::ResolutionDetails.new(
         value: converted_value,
         reason: map_reason(result.reason),
         variant: result.variant,
         flag_metadata: { flag_key: result.flag_key }
-      }
+      )
     rescue FlagNotFoundError => e
       error_result(default_value, error_code: :flag_not_found, error_message: e.message)
     rescue AuthenticationError => e
@@ -200,14 +202,14 @@ module Subflag
       end
     end
 
-    # Build error result hash
+    # Build error result
     def error_result(default_value, error_code:, error_message:)
-      {
+      OpenFeature::SDK::Provider::ResolutionDetails.new(
         value: default_value,
         reason: :error,
         error_code: error_code,
         error_message: error_message
-      }
+      )
     end
   end
 end

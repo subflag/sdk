@@ -4,11 +4,11 @@ module Subflag
   module Rails
     # Builds OpenFeature evaluation context from user objects and additional attributes
     class ContextBuilder
-      # Build an OpenFeature context hash
+      # Build an OpenFeature EvaluationContext
       #
       # @param user [Object, nil] The user object for targeting
       # @param context [Hash, nil] Additional context attributes
-      # @return [Hash, nil] The combined context or nil if empty
+      # @return [OpenFeature::SDK::EvaluationContext, nil] The combined context or nil if empty
       def self.build(user: nil, context: nil)
         new(user: user, context: context).build
       end
@@ -18,9 +18,9 @@ module Subflag
         @context = context || {}
       end
 
-      # Build the context hash
+      # Build the OpenFeature EvaluationContext
       #
-      # @return [Hash, nil]
+      # @return [OpenFeature::SDK::EvaluationContext, nil]
       def build
         result = {}
 
@@ -34,7 +34,11 @@ module Subflag
         result.merge!(@context) if @context.is_a?(Hash)
 
         # Return nil if empty (no context to send)
-        result.empty? ? nil : normalize_context(result)
+        return nil if result.empty?
+
+        # Convert to OpenFeature EvaluationContext
+        normalized = normalize_context(result)
+        OpenFeature::SDK::EvaluationContext.new(**normalized)
       end
 
       private

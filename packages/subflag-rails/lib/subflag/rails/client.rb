@@ -20,7 +20,7 @@ module Subflag
         cache_key = build_cache_key(flag_key, ctx, :boolean)
 
         result = RequestCache.fetch(cache_key) do
-          openfeature_client.fetch_boolean_value(flag_key, default, ctx)
+          openfeature_client.fetch_boolean_value(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         end
 
         log_evaluation(flag_key, result, default)
@@ -81,15 +81,15 @@ module Subflag
       def fetch_value_by_type(flag_key, default, ctx)
         case default
         when String
-          openfeature_client.fetch_string_value(flag_key, default, ctx)
+          openfeature_client.fetch_string_value(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         when Integer
-          openfeature_client.fetch_integer_value(flag_key, default, ctx)
+          openfeature_client.fetch_integer_value(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         when Float
-          openfeature_client.fetch_float_value(flag_key, default, ctx)
+          openfeature_client.fetch_float_value(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         when TrueClass, FalseClass
-          openfeature_client.fetch_boolean_value(flag_key, default, ctx)
+          openfeature_client.fetch_boolean_value(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         when Hash
-          openfeature_client.fetch_object_value(flag_key, default, ctx)
+          openfeature_client.fetch_object_value(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         when NilClass
           raise ArgumentError, "default is required for value flags (it determines the expected type)"
         else
@@ -100,15 +100,15 @@ module Subflag
       def fetch_details_by_type(flag_key, default, ctx)
         case default
         when String
-          openfeature_client.fetch_string_details(flag_key, default, ctx)
+          openfeature_client.fetch_string_details(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         when Integer
-          openfeature_client.fetch_integer_details(flag_key, default, ctx)
+          openfeature_client.fetch_integer_details(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         when Float
-          openfeature_client.fetch_float_details(flag_key, default, ctx)
+          openfeature_client.fetch_float_details(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         when TrueClass, FalseClass
-          openfeature_client.fetch_boolean_details(flag_key, default, ctx)
+          openfeature_client.fetch_boolean_details(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         when Hash
-          openfeature_client.fetch_object_details(flag_key, default, ctx)
+          openfeature_client.fetch_object_details(flag_key: flag_key, default_value: default, evaluation_context: ctx)
         when NilClass
           raise ArgumentError, "default is required for evaluate (it determines the expected type)"
         else
