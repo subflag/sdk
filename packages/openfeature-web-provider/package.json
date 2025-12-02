@@ -1,6 +1,6 @@
 {
   "name": "@subflag/openfeature-web-provider",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenFeature web provider for Subflag feature flags",
   "type": "module",
   "main": "./dist/index.js",

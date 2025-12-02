@@ -84,7 +84,7 @@ export class SubflagWebProvider implements Provider {
     flagKey: string,
     defaultValue: boolean,
     _context: OpenFeatureContext,
-    _logger: Logger
+    logger: Logger
   ): ResolutionDetails<boolean> {
     const cached = this.flagCache.get(flagKey);
 
@@ -96,6 +96,8 @@ export class SubflagWebProvider implements Provider {
         errorMessage: `Flag '${flagKey}' not found in cache`,
       };
     }
+
+    this.warnIfDeprecated(cached, logger);
 
     if (typeof cached.value !== 'boolean') {
       return {
@@ -120,7 +122,7 @@ export class SubflagWebProvider implements Provider {
     flagKey: string,
     defaultValue: string,
     _context: OpenFeatureContext,
-    _logger: Logger
+    logger: Logger
   ): ResolutionDetails<string> {
     const cached = this.flagCache.get(flagKey);
 
@@ -132,6 +134,8 @@ export class SubflagWebProvider implements Provider {
         errorMessage: `Flag '${flagKey}' not found in cache`,
       };
     }
+
+    this.warnIfDeprecated(cached, logger);
 
     if (typeof cached.value !== 'string') {
       return {
@@ -156,7 +160,7 @@ export class SubflagWebProvider implements Provider {
     flagKey: string,
     defaultValue: number,
     _context: OpenFeatureContext,
-    _logger: Logger
+    logger: Logger
   ): ResolutionDetails<number> {
     const cached = this.flagCache.get(flagKey);
 
@@ -168,6 +172,8 @@ export class SubflagWebProvider implements Provider {
         errorMessage: `Flag '${flagKey}' not found in cache`,
       };
     }
+
+    this.warnIfDeprecated(cached, logger);
 
     if (typeof cached.value !== 'number') {
       return {
@@ -192,7 +198,7 @@ export class SubflagWebProvider implements Provider {
     flagKey: string,
     defaultValue: T,
     _context: OpenFeatureContext,
-    _logger: Logger
+    logger: Logger
   ): ResolutionDetails<T> {
     const cached = this.flagCache.get(flagKey);
 
@@ -204,6 +210,8 @@ export class SubflagWebProvider implements Provider {
         errorMessage: `Flag '${flagKey}' not found in cache`,
       };
     }
+
+    this.warnIfDeprecated(cached, logger);
 
     if (typeof cached.value !== 'object' || cached.value === null) {
       return {
@@ -219,5 +227,17 @@ export class SubflagWebProvider implements Provider {
       variant: cached.variant,
       reason: cached.reason,
     };
+  }
+
+  /**
+   * Log a warning if the flag is deprecated.
+   */
+  private warnIfDeprecated(result: EvaluationResult, logger: Logger): void {
+    if (result.flagStatus === 'DEPRECATED') {
+      logger.warn(
+        `Flag "${result.flagKey}" is deprecated and scheduled for removal. ` +
+        `Please migrate away from this flag.`
+      );
+    }
   }
 }

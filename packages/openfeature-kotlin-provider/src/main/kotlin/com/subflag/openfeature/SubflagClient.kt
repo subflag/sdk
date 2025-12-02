@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.subflag.openfeature.exceptions.*
 import com.subflag.openfeature.models.EvaluationReason
 import com.subflag.openfeature.models.EvaluationResult
+import com.subflag.openfeature.models.FlagStatus
 import com.subflag.openfeature.models.SubflagEvaluationContext
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -133,7 +134,8 @@ class SubflagClient(
             value = this["value"],
             variant = (this["variant"] as? String)
                 ?: error("Missing variant in response"),
-            reason = (this["reason"] as? String).toEvaluationReason()
+            reason = (this["reason"] as? String).toEvaluationReason(),
+            flagStatus = FlagStatus.fromString(this["flagStatus"] as? String)
         )
 
     private fun String?.toEvaluationReason() = when (this) {

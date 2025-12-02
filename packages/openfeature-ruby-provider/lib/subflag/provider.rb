@@ -126,6 +126,9 @@ module Subflag
       context = EvaluationContext.from_openfeature(evaluation_context)
       result = @client.evaluate(flag_key, context: context)
 
+      # Warn if flag is deprecated
+      warn_if_deprecated(result)
+
       # Validate type matches
       unless type_matches?(result.value, expected_type)
         return error_result(
@@ -210,6 +213,14 @@ module Subflag
         error_code: error_code,
         error_message: error_message
       )
+    end
+
+    # Log a warning if the flag is deprecated
+    def warn_if_deprecated(result)
+      return unless result.deprecated?
+
+      warn "[Subflag] Flag \"#{result.flag_key}\" is deprecated and scheduled for removal. " \
+           "Please migrate away from this flag."
     end
   end
 end

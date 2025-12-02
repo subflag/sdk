@@ -51,6 +51,14 @@ export type EvaluationReason =
   | 'ERROR';            // Evaluation error occurred
 
 /**
+ * Lifecycle status of a flag.
+ * Only included in evaluation responses when the flag is not ACTIVE.
+ */
+export type FlagStatus =
+  | 'ACTIVE'      // Flag is functioning normally
+  | 'DEPRECATED'; // Flag is marked for removal, consider migrating
+
+/**
  * Result of a flag evaluation.
  *
  * @example
@@ -84,4 +92,11 @@ export interface EvaluationResult {
    * Reason for this evaluation result
    */
   reason: EvaluationReason;
+
+  /**
+   * Lifecycle status of the flag.
+   * Only present when flag is not ACTIVE (e.g., DEPRECATED).
+   * SDKs should log warnings when this field is present.
+   */
+  flagStatus?: FlagStatus;
 }

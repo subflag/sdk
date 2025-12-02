@@ -12,6 +12,7 @@ import dev.openfeature.sdk.Value
 import io.ktor.client.*
 import kotlinx.coroutines.runBlocking
 import java.time.Duration
+import java.util.logging.Logger
 
 /**
  * OpenFeature provider for Subflag feature flags.
@@ -53,6 +54,10 @@ import java.time.Duration
 class SubflagProvider private constructor(
     private val client: SubflagClient
 ) : FeatureProvider {
+
+    companion object {
+        private val logger = Logger.getLogger(SubflagProvider::class.java.name)
+    }
 
     @JvmOverloads
     constructor(
@@ -126,6 +131,14 @@ class SubflagProvider private constructor(
         return try {
             val result = runBlocking {
                 client.evaluate(key, context?.toSubflagContext())
+            }
+
+            // Warn if flag is deprecated
+            if (result.isDeprecated) {
+                logger.warning(
+                    "Flag \"$key\" is deprecated and scheduled for removal. " +
+                    "Please migrate away from this flag."
+                )
             }
 
             val typedValue = try {

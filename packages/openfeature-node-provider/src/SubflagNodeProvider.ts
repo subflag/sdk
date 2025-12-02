@@ -8,6 +8,7 @@ import type {
 import { ErrorCode } from '@openfeature/server-sdk';
 import { SubflagHttpClient, SubflagApiError } from './http-client';
 import type { SubflagProviderConfig } from './types';
+import type { EvaluationResult } from '@subflag/api-types';
 
 /**
  * OpenFeature provider for Subflag feature flags (Node.js/Server).
@@ -46,10 +47,11 @@ export class SubflagNodeProvider implements Provider {
     flagKey: string,
     defaultValue: boolean,
     context: OpenFeatureContext,
-    _logger: Logger
+    logger: Logger
   ): Promise<ResolutionDetails<boolean>> {
     try {
       const result = await this.httpClient.evaluateFlag(flagKey, context);
+      this.warnIfDeprecated(result, logger);
 
       if (typeof result.value !== 'boolean') {
         return {
@@ -77,10 +79,11 @@ export class SubflagNodeProvider implements Provider {
     flagKey: string,
     defaultValue: string,
     context: OpenFeatureContext,
-    _logger: Logger
+    logger: Logger
   ): Promise<ResolutionDetails<string>> {
     try {
       const result = await this.httpClient.evaluateFlag(flagKey, context);
+      this.warnIfDeprecated(result, logger);
 
       if (typeof result.value !== 'string') {
         return {
@@ -108,10 +111,11 @@ export class SubflagNodeProvider implements Provider {
     flagKey: string,
     defaultValue: number,
     context: OpenFeatureContext,
-    _logger: Logger
+    logger: Logger
   ): Promise<ResolutionDetails<number>> {
     try {
       const result = await this.httpClient.evaluateFlag(flagKey, context);
+      this.warnIfDeprecated(result, logger);
 
       if (typeof result.value !== 'number') {
         return {
@@ -139,10 +143,11 @@ export class SubflagNodeProvider implements Provider {
     flagKey: string,
     defaultValue: T,
     context: OpenFeatureContext,
-    _logger: Logger
+    logger: Logger
   ): Promise<ResolutionDetails<T>> {
     try {
       const result = await this.httpClient.evaluateFlag(flagKey, context);
+      this.warnIfDeprecated(result, logger);
 
       if (typeof result.value !== 'object' || result.value === null) {
         return {
@@ -174,6 +179,9 @@ export class SubflagNodeProvider implements Provider {
         errorCode = ErrorCode.INVALID_CONTEXT;
       } else if (error.statusCode === 404) {
         errorCode = ErrorCode.FLAG_NOT_FOUND;
+      } else if (error.statusCode === 410) {
+        // 410 Gone indicates archived flag
+        errorCode = ErrorCode.FLAG_NOT_FOUND;
       } else {
         errorCode = ErrorCode.GENERAL;
       }
@@ -192,5 +200,17 @@ export class SubflagNodeProvider implements Provider {
       errorCode: ErrorCode.GENERAL,
       errorMessage: error instanceof Error ? error.message : 'Unknown error',
     };
+  }
+
+  /**
+   * Log a warning if the flag is deprecated.
+   */
+  private warnIfDeprecated(result: EvaluationResult, logger: Logger): void {
+    if (result.flagStatus === 'DEPRECATED') {
+      logger.warn(
+        `Flag "${result.flagKey}" is deprecated and scheduled for removal. ` +
+        `Please migrate away from this flag.`
+      );
+    }
   }
 }
