@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.subflag:sdk:kotlin-sdk-v0.1.0")
+    implementation("com.github.subflag:sdk:sdk-kotlin-v0.2.0")
 }
 ```
 
@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.subflag:sdk:kotlin-sdk-v0.1.0'
+    implementation 'com.github.subflag:sdk:sdk-kotlin-v0.2.0'
 }
 ```
 
@@ -43,7 +43,7 @@ dependencies {
 <dependency>
     <groupId>com.github.subflag</groupId>
     <artifactId>sdk</artifactId>
-    <version>kotlin-sdk-v0.1.0</version>
+    <version>sdk-kotlin-v0.2.0</version>
 </dependency>
 ```
 
