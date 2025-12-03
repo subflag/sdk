@@ -7,8 +7,7 @@ import type {
 } from '@openfeature/server-sdk';
 import { ErrorCode } from '@openfeature/server-sdk';
 import { SubflagHttpClient, SubflagApiError } from './http-client';
-import type { SubflagProviderConfig } from './types';
-import type { EvaluationResult } from '@subflag/api-types';
+import type { SubflagProviderConfig, EvaluationResult } from './types';
 
 /**
  * OpenFeature provider for Subflag feature flags (Node.js/Server).

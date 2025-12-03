@@ -1,6 +1,3 @@
-// Re-export types from the generated API types package
-export type { EvaluationContext, EvaluationResult } from '@subflag/api-types';
-
 /**
  * Configuration options for the Subflag provider.
  */
@@ -19,4 +16,40 @@ export interface SubflagProviderConfig {
    * Optional timeout for API requests in milliseconds (default: 5000)
    */
   timeout?: number;
+}
+
+/**
+ * Evaluation context for flag targeting.
+ */
+export interface EvaluationContext {
+  targetingKey?: string | null;
+  kind: string | null;
+  attributes?: Record<string, unknown> | null;
+}
+
+/**
+ * Reason for flag evaluation result
+ */
+export type EvaluationReason =
+  | 'DEFAULT'
+  | 'OVERRIDE'
+  | 'SEGMENT_MATCH'
+  | 'PERCENTAGE_ROLLOUT'
+  | 'TARGETING_MATCH'
+  | 'ERROR';
+
+/**
+ * Lifecycle status of a flag.
+ */
+export type FlagStatus = 'ACTIVE' | 'DEPRECATED';
+
+/**
+ * Result of a flag evaluation.
+ */
+export interface EvaluationResult {
+  flagKey: string;
+  value: unknown;
+  variant: string;
+  reason: EvaluationReason;
+  flagStatus?: FlagStatus;
 }

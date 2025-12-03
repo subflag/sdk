@@ -36,9 +36,6 @@
   "peerDependencies": {
     "@openfeature/server-sdk": "^1.0.0"
   },
-  "dependencies": {
-    "@subflag/api-types": "workspace:*"
-  },
   "devDependencies": {
     "@openfeature/server-sdk": "^1.13.0",
     "@types/node": "^20.11.5",
