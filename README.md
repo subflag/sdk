@@ -13,7 +13,6 @@ Official [OpenFeature](https://openfeature.dev)-compliant SDKs for [Subflag](htt
 | [@subflag/openfeature-web-provider](./packages/openfeature-web-provider) | TypeScript/JavaScript | `npm install @subflag/openfeature-web-provider` |
 | [@subflag/openfeature-node-provider](./packages/openfeature-node-provider) | TypeScript/JavaScript | `npm install @subflag/openfeature-node-provider` |
 | [subflag-openfeature-provider](./packages/openfeature-ruby-provider) | Ruby | `gem install subflag-openfeature-provider` |
-| [@subflag/api-types](./packages/api-types) | TypeScript | `npm install @subflag/api-types` |
 
 ## Quick Start
 
@@ -141,8 +140,7 @@ pnpm typecheck
 packages/
 ├── openfeature-web-provider/     # Browser/client-side provider
 ├── openfeature-node-provider/    # Node.js server provider
-├── openfeature-ruby-provider/    # Ruby provider
-└── api-types/                    # Shared TypeScript types
+└── openfeature-ruby-provider/    # Ruby provider
 ```
 
 ## Contributing

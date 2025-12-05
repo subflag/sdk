@@ -5,9 +5,6 @@ node_modules/
 dist/
 *.tsbuildinfo
 
-# Generated files
-packages/api-types/src/generated.ts
-
 # Editor
 .DS_Store
 *.swp
