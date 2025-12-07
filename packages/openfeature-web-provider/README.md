@@ -2,7 +2,7 @@
 
 OpenFeature web provider for [Subflag](https://github.com/subflag/subflag) feature flags.
 
-**How it works:** This provider pre-fetches all flags during initialization and serves them synchronously from an in-memory cache. Flags are fetched once when the provider is set, making flag evaluations instant with zero network latency.
+**How it works:** This provider pre-fetches all flags during initialization and serves them synchronously from an in-memory cache. Flags are re-fetched automatically when you update context via `OpenFeature.setContext()`.
 
 ## Installation
 
@@ -22,14 +22,18 @@ pnpm add @subflag/openfeature-web-provider @openfeature/web-sdk
 import { OpenFeature } from '@openfeature/web-sdk';
 import { SubflagWebProvider } from '@subflag/openfeature-web-provider';
 
-// Initialize the provider
+// Create the provider
 const provider = new SubflagWebProvider({
   apiUrl: 'http://localhost:8080',
   apiKey: 'sdk-production-my-app-your-key-here',
 });
 
-// Set provider and wait for it to be ready
-await OpenFeature.setProviderAndWait(provider);
+// Set provider with initial context for targeting
+await OpenFeature.setProviderAndWait(provider, {
+  targetingKey: 'user-123',  // Unique identifier for this user/session
+  plan: 'premium',           // Custom attributes for targeting rules
+  country: 'US',
+});
 
 // Get a client
 const client = OpenFeature.getClient();
@@ -51,6 +55,15 @@ const config = client.getObjectValue('ui-config', { theme: 'light' });
 | `apiKey` | `string` | Yes | Your SDK API key (format: `sdk-{env}-{random}`) |
 | `timeout` | `number` | No | Request timeout in milliseconds (default: 5000) |
 
+### Evaluation Context
+
+Context is set via OpenFeature's standard API, not the provider config. Common context fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `targetingKey` | `string` | Unique identifier for the context (user ID, session ID, etc.) |
+| Any custom field | `any` | Custom attributes for targeting rules (plan, country, etc.) |
+
 ## Getting an API Key
 
 See [Team Management → API Keys](https://docs.subflag.com/admin/team-management#api-keys) in the docs for instructions on creating API keys.
@@ -59,28 +72,41 @@ See [Team Management → API Keys](https://docs.subflag.com/admin/team-managemen
 
 The web provider uses a **pre-fetch and cache** strategy:
 
-1. **Initialization**: When `setProviderAndWait()` is called, the provider fetches ALL flags from the server using `/sdk/evaluate-all`
+1. **Initialization**: When `setProviderAndWait()` is called, the provider fetches ALL flags from the server using `/sdk/evaluate-all` with the provided context
 2. **Caching**: All flags are stored in an in-memory Map by flag key
 3. **Synchronous Evaluation**: Flag lookups are instant - no network calls during evaluation
-4. **Refresh**: Call `await provider.initialize()` again to refresh the cache
+4. **Context Changes**: When `OpenFeature.setContext()` is called, flags are automatically re-fetched with the new context
 
 This approach provides:
 - ✅ **Zero-latency flag evaluations** (synchronous, no await needed)
 - ✅ **Reduced server load** (one bulk request vs N individual requests)
+- ✅ **Targeting support** (context is used to evaluate segments and rollouts)
 - ✅ **Offline capability** (flags work even if server becomes unreachable)
-- ⚠️ **Eventual consistency** (flags may be stale until next refresh)
+- ⚠️ **Eventual consistency** (flags may be stale until next context change)
 
 ## Usage with React
 
 ```typescript
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { OpenFeature } from '@openfeature/web-sdk';
 import { SubflagWebProvider } from '@subflag/openfeature-web-provider';
+
+// Generate or retrieve a session ID for anonymous users
+function getSessionId(): string {
+  const key = 'subflag_session_id';
+  let sessionId = sessionStorage.getItem(key);
+  if (!sessionId) {
+    sessionId = `session-${crypto.randomUUID()}`;
+    sessionStorage.setItem(key, sessionId);
+  }
+  return sessionId;
+}
 
 function App() {
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Initialize provider with anonymous session context
   useEffect(() => {
     async function initializeProvider() {
       try {
@@ -89,8 +115,11 @@ function App() {
           apiKey: import.meta.env.VITE_SUBFLAG_API_KEY,
         });
 
-        // This pre-fetches all flags from the server
-        await OpenFeature.setProviderAndWait(provider);
+        // Set provider with initial anonymous context
+        await OpenFeature.setProviderAndWait(provider, {
+          targetingKey: getSessionId(),
+        });
+
         setClient(OpenFeature.getClient());
       } catch (error) {
         console.error('Failed to initialize provider:', error);
@@ -100,6 +129,22 @@ function App() {
     }
 
     initializeProvider();
+  }, []);
+
+  // Update context when user logs in
+  const handleLogin = useCallback(async (user: User) => {
+    await OpenFeature.setContext({
+      targetingKey: user.id,
+      plan: user.plan,
+      email: user.email,
+    });
+  }, []);
+
+  // Revert to anonymous context on logout
+  const handleLogout = useCallback(async () => {
+    await OpenFeature.setContext({
+      targetingKey: getSessionId(),
+    });
   }, []);
 
   if (loading) return <div>Loading flags...</div>;
@@ -116,20 +161,34 @@ function FeatureGatedComponent({ client }) {
 }
 ```
 
-### Refreshing Flags
+### Updating Context (User Login, Plan Changes, etc.)
 
-To update flags without reloading the page:
+When the user context changes (e.g., after login, plan upgrade), use `OpenFeature.setContext()` to re-evaluate all flags:
 
 ```typescript
-import { OpenFeature } from '@openfeature/web-sdk';
+// Initialize provider first
+const provider = new SubflagWebProvider({ apiUrl, apiKey });
+await OpenFeature.setProviderAndWait(provider);
 
-// Get the current provider
-const provider = OpenFeature.getProviderForClient();
+// Later, when user logs in...
+await OpenFeature.setContext({
+  targetingKey: user.id,
+  plan: user.plan,
+  email: user.email,
+  country: user.country,
+});
 
-// Re-fetch all flags from the server
-await provider.initialize();
+// Flags are now re-evaluated for this user
+const premiumFeature = client.getBooleanValue('premium-feature', false);
+```
 
-// Flags are now updated in the cache
+### Clearing Context (User Logout)
+
+```typescript
+// Revert to anonymous session context when user logs out
+await OpenFeature.setContext({
+  targetingKey: getSessionId(),
+});
 ```
 
 ## Supported Flag Types

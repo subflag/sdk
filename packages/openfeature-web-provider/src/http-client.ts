@@ -1,4 +1,17 @@
+import type { EvaluationContext as OpenFeatureContext } from '@openfeature/web-sdk';
 import type { EvaluationContext, EvaluationResult, SubflagProviderConfig } from './types';
+
+/**
+ * Convert OpenFeature context to Subflag API context format.
+ * OpenFeature context doesn't have a "kind" field, so we add it with a default value.
+ */
+function toSubflagContext(openFeatureContext: OpenFeatureContext): EvaluationContext {
+  return {
+    targetingKey: openFeatureContext.targetingKey ?? null,
+    kind: 'user', // OpenFeature doesn't have "kind", default to "user"
+    attributes: Object.keys(openFeatureContext).length > 0 ? openFeatureContext : null,
+  };
+}
 
 /**
  * HTTP client for communicating with the Subflag API.
@@ -69,12 +82,14 @@ export class SubflagHttpClient {
   /**
    * Evaluate all flags in the environment (bulk evaluation).
    */
-  async evaluateAllFlags(context?: EvaluationContext): Promise<EvaluationResult[]> {
+  async evaluateAllFlags(context?: OpenFeatureContext): Promise<EvaluationResult[]> {
     const url = `${this.apiUrl}/sdk/evaluate-all`;
 
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const subflagContext = context ? toSubflagContext(context) : undefined;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -82,7 +97,7 @@ export class SubflagHttpClient {
           'Content-Type': 'application/json',
           'X-Subflag-API-Key': this.apiKey,
         },
-        body: context ? JSON.stringify(context) : undefined,
+        body: subflagContext ? JSON.stringify(subflagContext) : undefined,
         signal: controller.signal,
       });
 
