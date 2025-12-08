@@ -48,6 +48,146 @@ const config = await client.getObjectValue('ui-config', { theme: 'light' });
 | `apiUrl` | `string` | Yes | The Subflag API URL (e.g., `"http://localhost:8080"`) |
 | `apiKey` | `string` | Yes | Your SDK API key (format: `sdk-{env}-{random}`) |
 | `timeout` | `number` | No | Request timeout in milliseconds (default: 5000) |
+| `cache` | `CacheConfig` | No | Cache configuration (see [Caching](#caching) below) |
+
+## Caching
+
+By default, the provider makes an API call for every flag evaluation. For better performance, you can enable caching with a pluggable cache interface.
+
+### Using the Built-in InMemoryCache
+
+```typescript
+import { OpenFeature } from '@openfeature/server-sdk';
+import { SubflagNodeProvider, InMemoryCache } from '@subflag/openfeature-node-provider';
+
+const provider = new SubflagNodeProvider({
+  apiUrl: 'http://localhost:8080',
+  apiKey: 'sdk-production-...',
+  cache: {
+    cache: new InMemoryCache(),
+    ttlSeconds: 30, // Cache values for 30 seconds
+  },
+});
+
+await OpenFeature.setProviderAndWait(provider);
+const client = OpenFeature.getClient();
+
+// First call hits the API
+await client.getBooleanValue('my-flag', false);
+
+// Subsequent calls within TTL use cached value
+await client.getBooleanValue('my-flag', false); // No API call
+```
+
+### Using Redis (or any custom cache)
+
+Implement the `SubflagCache` interface to use Redis, Memcached, or any other cache:
+
+```typescript
+import { SubflagNodeProvider, SubflagCache } from '@subflag/openfeature-node-provider';
+import Redis from 'ioredis';
+
+const redis = new Redis();
+
+const redisCache: SubflagCache = {
+  async get(key) {
+    const data = await redis.get(key);
+    return data ? JSON.parse(data) : undefined;
+  },
+  async set(key, value, ttlSeconds) {
+    await redis.setex(key, ttlSeconds, JSON.stringify(value));
+  },
+  async delete(key) {
+    await redis.del(key);
+  },
+  async clear() {
+    // Optional: implement if needed
+  },
+};
+
+const provider = new SubflagNodeProvider({
+  apiUrl: 'http://localhost:8080',
+  apiKey: 'sdk-production-...',
+  cache: {
+    cache: redisCache,
+    ttlSeconds: 60,
+  },
+});
+```
+
+### Cache Configuration Options
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `cache` | `SubflagCache` | Yes | Cache implementation |
+| `ttlSeconds` | `number` | No | Time-to-live in seconds (default: 60) |
+| `keyGenerator` | `function` | No | Custom cache key generator |
+
+### Custom Cache Keys
+
+By default, cache keys are generated as `subflag:{flagKey}:{contextHash}`. You can customize this:
+
+```typescript
+const provider = new SubflagNodeProvider({
+  apiUrl: 'http://localhost:8080',
+  apiKey: 'sdk-production-...',
+  cache: {
+    cache: new InMemoryCache(),
+    ttlSeconds: 30,
+    keyGenerator: (flagKey, context) => {
+      return `myapp:flags:${flagKey}:${context?.targetingKey || 'anonymous'}`;
+    },
+  },
+});
+```
+
+### Context-Aware Caching
+
+The cache automatically accounts for different evaluation contexts. Different users/contexts get separate cache entries:
+
+```typescript
+// These use different cache entries
+await client.getBooleanValue('premium-feature', false, { targetingKey: 'user-1' });
+await client.getBooleanValue('premium-feature', false, { targetingKey: 'user-2' });
+```
+
+### Prefetching Flags
+
+For optimal performance, prefetch all flags in a single API call. This is especially useful in request handlers where you evaluate multiple flags:
+
+```typescript
+import { OpenFeature } from '@openfeature/server-sdk';
+import { SubflagNodeProvider, InMemoryCache } from '@subflag/openfeature-node-provider';
+
+const provider = new SubflagNodeProvider({
+  apiUrl: 'http://localhost:8080',
+  apiKey: 'sdk-production-...',
+  cache: {
+    cache: new InMemoryCache(),
+    ttlSeconds: 30,
+  },
+});
+
+await OpenFeature.setProviderAndWait(provider);
+
+// In your request handler:
+app.get('/api/data', async (req, res) => {
+  const context = { targetingKey: req.user.id };
+
+  // Prefetch all flags for this user (1 API call)
+  await provider.prefetchFlags(context);
+
+  // All subsequent evaluations use cache (0 API calls)
+  const client = OpenFeature.getClient();
+  const showNewUI = await client.getBooleanValue('new-ui', false, context);
+  const maxItems = await client.getNumberValue('max-items', 10, context);
+  const theme = await client.getStringValue('theme', 'light', context);
+
+  res.json({ showNewUI, maxItems, theme });
+});
+```
+
+**Note:** `prefetchFlags()` requires caching to be enabled. It will throw an error if called without a cache configured.
 
 ## Getting an API Key
 
