@@ -1,6 +1,6 @@
 # @subflag/openfeature-web-provider
 
-OpenFeature web provider for [Subflag](https://github.com/subflag/subflag) feature flags.
+OpenFeature web provider for [Subflag](https://subflag.com) feature flags.
 
 **How it works:** This provider pre-fetches all flags during initialization and serves them synchronously from an in-memory cache. Flags are re-fetched automatically when you update context via `OpenFeature.setContext()`.
 

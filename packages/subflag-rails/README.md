@@ -2,6 +2,8 @@
 
 Typed feature flags for Rails. Booleans, strings, numbers, and JSON — all targetable by user.
 
+[Subflag](https://subflag.com)
+
 ## Installation
 
 Add to your Gemfile:

@@ -1,6 +1,6 @@
 # @subflag/openfeature-node-provider
 
-OpenFeature Node.js provider for [Subflag](https://github.com/subflag/subflag) feature flags.
+OpenFeature Node.js provider for [Subflag](https://subflag.com) feature flags.
 
 ## Installation
 
