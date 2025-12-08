@@ -246,7 +246,7 @@ subflag_prefetch(admin_user)
 subflag_prefetch(current_user, context: { device: "mobile" })
 ```
 
-## Direct API
+### Direct API
 
 You can also use the module method directly:
 
