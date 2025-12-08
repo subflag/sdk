@@ -92,6 +92,22 @@ module Subflag
           error_message: details[:error_message]
         )
       end
+
+      # Build from Subflag::EvaluationResult (from Ruby provider)
+      #
+      # @param result [Subflag::EvaluationResult] The provider's evaluation result
+      # @return [EvaluationResult]
+      def self.from_subflag(result)
+        # Convert uppercase reason string to lowercase symbol
+        reason = result.reason&.downcase&.to_sym || :unknown
+
+        new(
+          value: result.value,
+          variant: result.variant,
+          reason: reason,
+          flag_key: result.flag_key
+        )
+      end
     end
   end
 end

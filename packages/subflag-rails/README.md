@@ -214,6 +214,84 @@ subflag_enabled?(:new_checkout)  # Cache hit
 subflag_enabled?(:new_checkout)  # Cache hit
 ```
 
+## Bulk Flag Evaluation (Prefetch)
+
+For optimal performance, prefetch all flags for a user in a single API call. This is especially useful when your page checks multiple flags:
+
+```ruby
+# config/application.rb (required)
+config.middleware.use Subflag::Rails::RequestCache::Middleware
+```
+
+```ruby
+class ApplicationController < ActionController::Base
+  before_action :prefetch_feature_flags
+
+  private
+
+  def prefetch_feature_flags
+    subflag_prefetch  # Fetches all flags for current_user in one API call
+  end
+end
+```
+
+Now all subsequent flag lookups use the cache — no additional API calls:
+
+```ruby
+# In your controller/view - all lookups are instant (cache hits)
+subflag_enabled?(:new_checkout)           # Cache hit
+subflag_value(:max_projects, default: 3)  # Cache hit
+subflag_value(:headline, default: "Hi")   # Cache hit
+```
+
+### How It Works
+
+1. **Single API call**: `subflag_prefetch` calls `/sdk/evaluate-all` to fetch all flags
+2. **Per-request cache**: Results are stored in `RequestCache` for the duration of the request
+3. **Zero-latency lookups**: Subsequent `subflag_enabled?` and `subflag_value` calls read from cache
+
+### Prefetch Without current_user
+
+```ruby
+# No user context
+subflag_prefetch(nil)
+
+# With specific user
+subflag_prefetch(admin_user)
+
+# With additional context
+subflag_prefetch(current_user, context: { device: "mobile" })
+```
+
+### Cross-Request Caching
+
+By default, prefetched flags are only cached for the current request. To cache across multiple requests using `Rails.cache`, set a TTL:
+
+```ruby
+# config/initializers/subflag.rb
+Subflag::Rails.configure do |config|
+  config.api_key = Rails.application.credentials.subflag_api_key
+  config.cache_ttl = 30.seconds  # Cache flags in Rails.cache for 30 seconds
+end
+```
+
+With `cache_ttl` set:
+- First request fetches from API and stores in `Rails.cache`
+- Subsequent requests (within TTL) read from `Rails.cache` — no API call
+- After TTL expires, next request fetches fresh data
+
+This significantly reduces API load for high-traffic applications. Choose a TTL that balances freshness with performance — 30 seconds is a good starting point.
+
+### Direct API
+
+You can also use the module method directly:
+
+```ruby
+Subflag.prefetch_flags(user: current_user)
+# or
+Subflag::Rails.prefetch_flags(user: current_user)
+```
+
 ## Configuration
 
 ```ruby
@@ -223,6 +301,10 @@ Subflag::Rails.configure do |config|
 
   # API URL (default: https://api.subflag.com)
   config.api_url = "https://api.subflag.com"
+
+  # Cross-request caching via Rails.cache (optional)
+  # When set, prefetched flags are cached for this duration
+  config.cache_ttl = 30.seconds
 
   # Logging
   config.logging_enabled = Rails.env.development?

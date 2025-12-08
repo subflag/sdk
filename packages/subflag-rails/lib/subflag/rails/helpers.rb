@@ -93,6 +93,36 @@ module Subflag
         Subflag.flags(user: resolved, context: context)
       end
 
+      # Prefetch all flags for a user in a single API call
+      #
+      # Call this early in a request (e.g., in a before_action) to fetch
+      # all flags at once. Subsequent flag lookups will use the cached values.
+      #
+      # Automatically scoped to current_user if available.
+      #
+      # @param user [Object, nil, :auto] User for targeting (default: current_user)
+      # @param context [Hash, nil] Additional context attributes
+      # @return [Array<Hash>] Array of prefetched flag results (for inspection)
+      #
+      # @example In ApplicationController
+      #   class ApplicationController < ActionController::Base
+      #     before_action :prefetch_feature_flags
+      #
+      #     private
+      #
+      #     def prefetch_feature_flags
+      #       subflag_prefetch  # Uses current_user automatically
+      #     end
+      #   end
+      #
+      # @example Without user context
+      #   subflag_prefetch(nil)
+      #
+      def subflag_prefetch(user = :auto, context: nil)
+        resolved = resolve_user(user)
+        Subflag.prefetch_flags(user: resolved, context: context)
+      end
+
       private
 
       # Resolve user parameter - use current_user if :auto and available

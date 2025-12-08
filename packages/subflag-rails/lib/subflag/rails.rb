@@ -48,6 +48,26 @@ module Subflag
         @client ||= Client.new
       end
 
+      # Prefetch all flags for a user/context in a single API call
+      #
+      # Call this early in a request to fetch all flags at once.
+      # Subsequent flag lookups will use the cached values.
+      #
+      # @param user [Object, nil] The user object for targeting
+      # @param context [Hash, nil] Additional context attributes
+      # @return [Array<Hash>] Array of prefetched flag results (for inspection)
+      #
+      # @example Prefetch in a controller
+      #   before_action :prefetch_flags
+      #
+      #   def prefetch_flags
+      #     Subflag::Rails.prefetch_flags(user: current_user)
+      #   end
+      #
+      def prefetch_flags(user: nil, context: nil)
+        client.prefetch_all(user: user, context: context)
+      end
+
       # Reset configuration (primarily for testing)
       def reset!
         @configuration = Configuration.new
@@ -91,6 +111,21 @@ module Subflag
     #
     def flags(user: nil, context: nil)
       Rails::FlagAccessor.new(user: user, context: context)
+    end
+
+    # Prefetch all flags for a user/context in a single API call
+    #
+    # @param user [Object, nil] The user object for targeting
+    # @param context [Hash, nil] Additional context attributes
+    # @return [Array<Hash>] Array of prefetched flag results
+    #
+    # @example
+    #   Subflag.prefetch_flags(user: current_user)
+    #   # Subsequent lookups use cache
+    #   Subflag.flags(user: current_user).new_feature?(default: false)
+    #
+    def prefetch_flags(user: nil, context: nil)
+      Rails.prefetch_flags(user: user, context: context)
     end
   end
 end

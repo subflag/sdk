@@ -35,12 +35,28 @@ module Subflag
       # @return [Symbol] Log level for flag evaluations (:debug, :info, :warn)
       attr_accessor :log_level
 
+      # @return [Integer, ActiveSupport::Duration, nil] TTL for cross-request caching
+      #   When set, prefetched flags are cached in Rails.cache for this duration.
+      #   Set to nil to disable cross-request caching (default).
+      attr_accessor :cache_ttl
+
       def initialize
         @api_key = nil
         @api_url = "https://api.subflag.com"
         @user_context_block = nil
         @logging_enabled = false
         @log_level = :debug
+        @cache_ttl = nil
+      end
+
+      # Check if cross-request caching via Rails.cache is enabled
+      #
+      # @return [Boolean]
+      def rails_cache_enabled?
+        return false unless @cache_ttl && @cache_ttl.to_i > 0
+        return false unless defined?(::Rails.cache) && ::Rails.cache.present?
+
+        true
       end
 
       # Configure how to extract context from a user object

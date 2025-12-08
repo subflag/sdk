@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # Runtime dependencies
-  spec.add_dependency "subflag-openfeature-provider", ">= 0.1", "< 1.0"
+  spec.add_dependency "subflag-openfeature-provider", ">= 0.3.1", "< 1.0"
   spec.add_dependency "railties", ">= 6.1"
   spec.add_dependency "actionview", ">= 6.1"
 

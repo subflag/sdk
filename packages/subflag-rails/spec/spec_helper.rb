@@ -2,6 +2,9 @@
 
 require "bundler/setup"
 require "webmock/rspec"
+require "active_support"
+require "active_support/cache"
+require "active_support/core_ext/object/blank"
 
 # Mock Rails before requiring subflag-rails
 module Rails
@@ -17,6 +20,14 @@ module Rails
 
   def self.env
     ActiveSupport::StringInquirer.new("test")
+  end
+
+  def self.cache
+    @cache ||= ActiveSupport::Cache::MemoryStore.new
+  end
+
+  def self.cache=(value)
+    @cache = value
   end
 end
 
@@ -57,6 +68,7 @@ RSpec.configure do |config|
   config.before(:each) do
     Subflag::Rails.reset!
     WebMock.reset!
+    Rails.cache.clear
   end
 end
 

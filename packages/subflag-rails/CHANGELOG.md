@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2025-12-07
+
+### Added
+
+- **Bulk flag evaluation**: `subflag_prefetch` helper fetches all flags in a single API call
+- **Cross-request caching**: `config.cache_ttl` enables caching via `Rails.cache` with configurable TTL
+- `Subflag.prefetch_flags` and `Subflag::Rails.prefetch_flags` module methods
+
+### Changed
+
+- Requires `subflag-openfeature-provider` >= 0.3.1
+
 ## [0.2.0] - 2025-11-30
 
 ### Changed
