@@ -159,42 +159,6 @@ In Ruby, use underscores — they're automatically converted to dashes:
 subflag_enabled?(:new_checkout)  # looks up "new-checkout"
 ```
 
-## Testing
-
-Stub flags in your tests:
-
-```ruby
-# spec/rails_helper.rb (RSpec)
-require "subflag/rails/test_helpers"
-RSpec.configure do |config|
-  config.include Subflag::Rails::TestHelpers
-end
-
-# test/test_helper.rb (Minitest)
-require "subflag/rails/test_helpers"
-class ActiveSupport::TestCase
-  include Subflag::Rails::TestHelpers
-end
-```
-
-```ruby
-# In your specs/tests
-it "shows new checkout when enabled" do
-  stub_subflag(:new_checkout, true)
-  stub_subflag(:max_projects, 100)
-
-  visit checkout_path
-  expect(page).to have_content("New Checkout")
-end
-
-# Stub multiple at once
-stub_subflags(
-  new_checkout: true,
-  max_projects: 100,
-  headline: "Welcome!"
-)
-```
-
 ## Request Caching
 
 Enable per-request caching to avoid multiple API calls for the same flag:
@@ -213,6 +177,25 @@ subflag_enabled?(:new_checkout)  # API call
 subflag_enabled?(:new_checkout)  # Cache hit
 subflag_enabled?(:new_checkout)  # Cache hit
 ```
+
+## Cross-Request Caching
+
+By default, prefetched flags are only cached for the current request. To cache across multiple requests using `Rails.cache`, set a TTL:
+
+```ruby
+# config/initializers/subflag.rb
+Subflag::Rails.configure do |config|
+  config.api_key = Rails.application.credentials.subflag_api_key
+  config.cache_ttl = 30.seconds  # Cache flags in Rails.cache for 30 seconds
+end
+```
+
+With `cache_ttl` set:
+- First request fetches from API and stores in `Rails.cache`
+- Subsequent requests (within TTL) read from `Rails.cache` — no API call
+- After TTL expires, next request fetches fresh data
+
+This significantly reduces API load for high-traffic applications. Choose a TTL that balances freshness with performance — 30 seconds is a good starting point.
 
 ## Bulk Flag Evaluation (Prefetch)
 
@@ -263,26 +246,7 @@ subflag_prefetch(admin_user)
 subflag_prefetch(current_user, context: { device: "mobile" })
 ```
 
-### Cross-Request Caching
-
-By default, prefetched flags are only cached for the current request. To cache across multiple requests using `Rails.cache`, set a TTL:
-
-```ruby
-# config/initializers/subflag.rb
-Subflag::Rails.configure do |config|
-  config.api_key = Rails.application.credentials.subflag_api_key
-  config.cache_ttl = 30.seconds  # Cache flags in Rails.cache for 30 seconds
-end
-```
-
-With `cache_ttl` set:
-- First request fetches from API and stores in `Rails.cache`
-- Subsequent requests (within TTL) read from `Rails.cache` — no API call
-- After TTL expires, next request fetches fresh data
-
-This significantly reduces API load for high-traffic applications. Choose a TTL that balances freshness with performance — 30 seconds is a good starting point.
-
-### Direct API
+## Direct API
 
 You can also use the module method directly:
 
@@ -315,6 +279,42 @@ Subflag::Rails.configure do |config|
     { targeting_key: user.id.to_s, plan: user.plan }
   end
 end
+```
+
+## Testing
+
+Stub flags in your tests:
+
+```ruby
+# spec/rails_helper.rb (RSpec)
+require "subflag/rails/test_helpers"
+RSpec.configure do |config|
+  config.include Subflag::Rails::TestHelpers
+end
+
+# test/test_helper.rb (Minitest)
+require "subflag/rails/test_helpers"
+class ActiveSupport::TestCase
+  include Subflag::Rails::TestHelpers
+end
+```
+
+```ruby
+# In your specs/tests
+it "shows new checkout when enabled" do
+  stub_subflag(:new_checkout, true)
+  stub_subflag(:max_projects, 100)
+
+  visit checkout_path
+  expect(page).to have_content("New Checkout")
+end
+
+# Stub multiple at once
+stub_subflags(
+  new_checkout: true,
+  max_projects: 100,
+  headline: "Welcome!"
+)
 ```
 
 ## Documentation
