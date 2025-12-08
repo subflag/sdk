@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2025-12-07
+
+### Fixed
+
+- `EvaluationResult.from_response` now accepts both camelCase (API format) and snake_case (Ruby format) keys, making `to_h` output compatible with `from_response`
+
 ## [0.2.1] - 2025-11-30
 
 ### Fixed

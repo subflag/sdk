@@ -44,10 +44,18 @@ module Subflag
       )
     end
 
-    # Fetch a key from hash, checking both string and symbol keys
+    # Fetch a key from hash, checking string, symbol, and snake_case variants
     # Can't use || because false values would be skipped
     def self.fetch_key(data, key)
-      data.key?(key) ? data[key] : data[key.to_sym]
+      # Try camelCase string (API format)
+      return data[key] if data.key?(key)
+      # Try camelCase symbol
+      return data[key.to_sym] if data.key?(key.to_sym)
+      # Try snake_case symbol (from to_h)
+      snake_key = key.gsub(/([a-z])([A-Z])/, '\1_\2').downcase.to_sym
+      return data[snake_key] if data.key?(snake_key)
+      # Try snake_case string
+      data[snake_key.to_s]
     end
 
     # Check if evaluation was successful (not an error)
