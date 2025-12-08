@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    subflag-openfeature-provider (0.3.0)
+    subflag-openfeature-provider (0.3.1)
       faraday (>= 2.0, < 3.0)
       openfeature-sdk (>= 0.3, < 1.0)
 
