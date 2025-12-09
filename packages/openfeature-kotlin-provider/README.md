@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.subflag:sdk:sdk-kotlin-v0.2.0")
+    implementation("com.github.subflag:sdk:sdk-kotlin-v0.3.0")
 }
 ```
 
@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.subflag:sdk:sdk-kotlin-v0.2.0'
+    implementation 'com.github.subflag:sdk:sdk-kotlin-v0.3.0'
 }
 ```
 
@@ -43,7 +43,7 @@ dependencies {
 <dependency>
     <groupId>com.github.subflag</groupId>
     <artifactId>sdk</artifactId>
-    <version>sdk-kotlin-v0.2.0</version>
+    <version>sdk-kotlin-v0.3.0</version>
 </dependency>
 ```
 
@@ -141,6 +141,132 @@ ImmutableContext context = new ImmutableContext(
 
 boolean showFeature = client.getBooleanValue("premium-feature", false, context);
 ```
+
+## Caching
+
+By default, the provider makes an API call for every flag evaluation. Enable caching to reduce latency and API calls.
+
+### In-Memory Cache
+
+```kotlin
+import com.subflag.openfeature.SubflagProvider
+import com.subflag.openfeature.cache.CacheConfig
+import com.subflag.openfeature.cache.InMemoryCache
+import java.time.Duration
+
+val provider = SubflagProvider(
+    apiUrl = "https://api.subflag.com",
+    apiKey = "sdk-prod-...",
+    cache = CacheConfig(
+        cache = InMemoryCache(),
+        ttl = Duration.ofSeconds(30)
+    )
+)
+```
+
+### Java
+
+```java
+import com.subflag.openfeature.SubflagProvider;
+import com.subflag.openfeature.cache.CacheConfig;
+import com.subflag.openfeature.cache.InMemoryCache;
+import java.time.Duration;
+
+SubflagProvider provider = new SubflagProvider(
+    "https://api.subflag.com",
+    "sdk-prod-...",
+    Duration.ofSeconds(5),  // timeout
+    new CacheConfig(
+        new InMemoryCache(),
+        Duration.ofSeconds(30),
+        null  // use default key generator
+    )
+);
+```
+
+### Custom Cache (Redis Example)
+
+Implement the `SubflagCache` interface to use Redis, Memcached, or any other cache:
+
+```kotlin
+import com.subflag.openfeature.cache.SubflagCache
+import com.subflag.openfeature.models.EvaluationResult
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import redis.clients.jedis.Jedis
+
+class RedisCache(private val jedis: Jedis) : SubflagCache {
+    private val mapper = jacksonObjectMapper()
+
+    override fun get(key: String): EvaluationResult? {
+        val data = jedis.get(key) ?: return null
+        return mapper.readValue(data, EvaluationResult::class.java)
+    }
+
+    override fun set(key: String, value: EvaluationResult, ttlMillis: Long) {
+        val data = mapper.writeValueAsString(value)
+        jedis.psetex(key, ttlMillis, data)
+    }
+
+    override fun delete(key: String) {
+        jedis.del(key)
+    }
+
+    override fun clear() {
+        // Be careful with this in production!
+        jedis.flushDB()
+    }
+}
+
+// Usage
+val provider = SubflagProvider(
+    apiUrl = "https://api.subflag.com",
+    apiKey = "sdk-prod-...",
+    cache = CacheConfig(
+        cache = RedisCache(jedis),
+        ttl = Duration.ofMinutes(5)
+    )
+)
+```
+
+### Custom Key Generator
+
+Override the default cache key format:
+
+```kotlin
+val provider = SubflagProvider(
+    apiUrl = "https://api.subflag.com",
+    apiKey = "sdk-prod-...",
+    cache = CacheConfig(
+        cache = InMemoryCache(),
+        ttl = Duration.ofSeconds(30),
+        keyGenerator = { flagKey, context ->
+            "myapp:flags:$flagKey:${context?.targetingKey ?: "anonymous"}"
+        }
+    )
+)
+```
+
+## Prefetching Flags
+
+Prefetch all flags in a single API call to populate the cache:
+
+```kotlin
+val provider = SubflagProvider(
+    apiUrl = "https://api.subflag.com",
+    apiKey = "sdk-prod-...",
+    cache = CacheConfig(cache = InMemoryCache(), ttl = Duration.ofSeconds(60))
+)
+
+// Prefetch all flags for a user (single API call)
+val context = ImmutableContext("user-123", mapOf("plan" to Value("premium")))
+val results = provider.prefetchFlags(context)
+
+// Subsequent evaluations use cache (no API calls)
+val featureA = client.getBooleanValue("feature-a", false, context)
+val featureB = client.getBooleanValue("feature-b", false, context)
+```
+
+**Note:** `prefetchFlags()` throws `IllegalStateException` if caching is not configured.
 
 ## Configuration Options
 
