@@ -9,6 +9,11 @@ class CreateSubflagFlags < ActiveRecord::Migration[<%= ActiveRecord::Migration.c
       t.boolean :enabled, null: false, default: true
       t.text :description
 
+      # Targeting rules for showing different values to different users
+      # Stores an array of { value, conditions } rules as JSON
+      # First matching rule wins; falls back to `value` if no match
+      t.<%= postgresql? ? 'jsonb' : 'json' %> :targeting_rules
+
       t.timestamps
     end
 

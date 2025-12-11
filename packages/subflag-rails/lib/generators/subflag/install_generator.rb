@@ -30,11 +30,19 @@ module Subflag
         end
       end
 
+      # Helper for templates to detect PostgreSQL adapter
+      def postgresql?
+        return false unless defined?(::ActiveRecord::Base)
+
+        adapter = ::ActiveRecord::Base.connection_db_config.adapter.to_s rescue nil
+        adapter&.include?("postgresql") || adapter&.include?("postgis")
+      end
+
       def create_initializer
         template "initializer.rb.tt", "config/initializers/subflag.rb"
       end
 
-      def create_migration
+      def create_flags_migration
         return unless options[:backend] == "active_record"
 
         migration_template "create_subflag_flags.rb.tt",

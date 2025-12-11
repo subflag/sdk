@@ -1,0 +1,50 @@
+<div class="flex justify-between items-center mb-10">
+  <h2 style="font-size: 20px;">Feature Flags</h2>
+  <a href="<%= new_flag_path %>" class="btn btn-primary">New Flag</a>
+</div>
+
+<div class="card">
+  <% if @flags.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Type</th>
+          <th>Default Value</th>
+          <th>Status</th>
+          <th>Rules</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @flags.each do |flag| %>
+          <tr>
+            <td class="mono"><%= flag.key %></td>
+            <td><%= flag.value_type %></td>
+            <td class="mono"><%= truncate(flag.value.to_s, length: 30) %></td>
+            <td>
+              <% if flag.enabled? %>
+                <span class="badge badge-success">enabled</span>
+              <% else %>
+                <span class="badge badge-secondary">disabled</span>
+              <% end %>
+            </td>
+            <td>
+              <% rules_count = flag.targeting_rules&.size || 0 %>
+              <span class="text-muted"><%= rules_count %> rule<%= rules_count == 1 ? '' : 's' %></span>
+            </td>
+            <td>
+              <div class="actions">
+                <a href="<%= edit_flag_path(flag) %>" class="btn btn-sm">Edit</a>
+                <%= button_to flag.enabled? ? "Disable" : "Enable", toggle_flag_path(flag), method: :post, class: "btn btn-sm" %>
+                <%= button_to "Delete", flag_path(flag), method: :delete, class: "btn btn-sm btn-danger", data: { confirm: "Delete flag '#{flag.key}'?" } %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="text-muted">No flags yet. <a href="<%= new_flag_path %>">Create your first flag</a>.</p>
+  <% end %>
+</div>

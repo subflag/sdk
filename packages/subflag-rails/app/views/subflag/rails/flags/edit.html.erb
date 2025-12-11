@@ -1,0 +1,241 @@
+<div class="flex justify-between items-center mb-10">
+  <h2 style="font-size: 20px;">Edit Flag: <span class="mono"><%= @flag.key %></span></h2>
+  <a href="<%= flags_path %>" class="btn">Back to Flags</a>
+</div>
+
+<div class="card">
+  <h2>Basic Settings</h2>
+  <%= render "form", flag: @flag %>
+</div>
+
+<div class="card">
+  <h2>Targeting Rules</h2>
+  <p class="text-muted mb-10">Rules are evaluated in order. First match wins. If no rules match, the default value is used.</p>
+
+  <div id="rules-container">
+    <!-- Rules rendered by JS -->
+  </div>
+
+  <button type="button" class="btn mt-10" onclick="addRule()">+ Add Rule</button>
+
+  <input type="hidden" name="targeting_rules_json" id="targeting-rules-json" value="<%= @flag.targeting_rules.to_json %>">
+
+  <div class="mt-10">
+    <button type="button" class="btn btn-primary" onclick="saveRules()">Save Rules</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Test Rules</h2>
+  <p class="text-muted mb-10">Enter a context (JSON) to test which value would be returned.</p>
+
+  <%= form_with url: test_flag_path(@flag), method: :post, local: true do |f| %>
+    <div class="form-group">
+      <%= f.label :context, "Test Context (JSON)" %>
+      <%= f.text_area :context, rows: 4, placeholder: '{"email": "test@company.com", "role": "admin"}', value: @test_context&.to_json, class: "mono" %>
+    </div>
+    <%= f.submit "Test", class: "btn" %>
+  <% end %>
+
+  <% if defined?(@test_result) && @test_result %>
+    <div class="mt-10" style="padding: 15px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 4px;">
+      <strong>Result:</strong> <span class="mono"><%= @test_result.inspect %></span>
+    </div>
+  <% end %>
+</div>
+
+<style>
+  .rule { border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin-bottom: 10px; background: #fafafa; }
+  .rule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .rule-value { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .rule-value input { width: 200px; }
+  .rule-logic { margin-bottom: 10px; }
+  .rule-logic label { margin-right: 15px; }
+  .condition { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .condition select, .condition input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+  .condition input[type="text"] { width: 180px; }
+  .remove-btn { background: none; border: none; color: #dc3545; cursor: pointer; font-size: 18px; padding: 0 5px; }
+  .remove-btn:hover { color: #c82333; }
+</style>
+
+<script>
+  const OPERATORS = [
+    { value: "EQUALS", label: "equals" },
+    { value: "NOT_EQUALS", label: "not equals" },
+    { value: "IN", label: "in (comma-separated)" },
+    { value: "NOT_IN", label: "not in" },
+    { value: "CONTAINS", label: "contains" },
+    { value: "STARTS_WITH", label: "starts with" },
+    { value: "ENDS_WITH", label: "ends with" },
+    { value: "GREATER_THAN", label: ">" },
+    { value: "LESS_THAN", label: "<" },
+    { value: "MATCHES", label: "matches (regex)" }
+  ];
+
+  let rules = [];
+
+  function init() {
+    const saved = document.getElementById("targeting-rules-json").value;
+    if (saved) {
+      try {
+        rules = JSON.parse(saved) || [];
+      } catch (e) {
+        rules = [];
+      }
+    }
+    renderRules();
+  }
+
+  function renderRules() {
+    const container = document.getElementById("rules-container");
+    container.innerHTML = rules.map((rule, ruleIndex) => renderRule(rule, ruleIndex)).join("");
+  }
+
+  function renderRule(rule, ruleIndex) {
+    const conditions = rule.conditions?.conditions || [];
+    const logicType = rule.conditions?.type || "AND";
+
+    return `
+      <div class="rule" data-rule-index="${ruleIndex}">
+        <div class="rule-header">
+          <strong>Rule ${ruleIndex + 1}</strong>
+          <button type="button" class="remove-btn" onclick="removeRule(${ruleIndex})">&times;</button>
+        </div>
+        <div class="rule-value">
+          <label>Return value:</label>
+          <input type="text" value="${escapeHtml(rule.value || '')}" onchange="updateRuleValue(${ruleIndex}, this.value)" placeholder="value when matched">
+        </div>
+        <div class="rule-logic">
+          <label><input type="radio" name="logic-${ruleIndex}" value="AND" ${logicType === 'AND' ? 'checked' : ''} onchange="updateLogic(${ruleIndex}, 'AND')"> ALL match</label>
+          <label><input type="radio" name="logic-${ruleIndex}" value="OR" ${logicType === 'OR' ? 'checked' : ''} onchange="updateLogic(${ruleIndex}, 'OR')"> ANY match</label>
+        </div>
+        <div class="conditions" id="conditions-${ruleIndex}">
+          ${conditions.map((c, cIndex) => renderCondition(c, ruleIndex, cIndex)).join("")}
+        </div>
+        <button type="button" class="btn btn-sm" onclick="addCondition(${ruleIndex})">+ Add Condition</button>
+      </div>
+    `;
+  }
+
+  function renderCondition(condition, ruleIndex, condIndex) {
+    const operatorOptions = OPERATORS.map(op =>
+      `<option value="${op.value}" ${condition.operator === op.value ? 'selected' : ''}>${op.label}</option>`
+    ).join("");
+
+    const valueDisplay = Array.isArray(condition.value) ? condition.value.join(", ") : (condition.value || "");
+
+    return `
+      <div class="condition">
+        <input type="text" placeholder="attribute" value="${escapeHtml(condition.attribute || '')}" onchange="updateCondition(${ruleIndex}, ${condIndex}, 'attribute', this.value)">
+        <select onchange="updateCondition(${ruleIndex}, ${condIndex}, 'operator', this.value)">
+          ${operatorOptions}
+        </select>
+        <input type="text" placeholder="value" value="${escapeHtml(valueDisplay)}" onchange="updateCondition(${ruleIndex}, ${condIndex}, 'value', this.value)">
+        <button type="button" class="remove-btn" onclick="removeCondition(${ruleIndex}, ${condIndex})">&times;</button>
+      </div>
+    `;
+  }
+
+  function addRule() {
+    rules.push({
+      value: "",
+      conditions: { type: "AND", conditions: [{ attribute: "", operator: "EQUALS", value: "" }] }
+    });
+    renderRules();
+  }
+
+  function removeRule(index) {
+    rules.splice(index, 1);
+    renderRules();
+  }
+
+  function updateRuleValue(ruleIndex, value) {
+    rules[ruleIndex].value = value;
+  }
+
+  function updateLogic(ruleIndex, type) {
+    rules[ruleIndex].conditions.type = type;
+  }
+
+  function addCondition(ruleIndex) {
+    if (!rules[ruleIndex].conditions.conditions) {
+      rules[ruleIndex].conditions.conditions = [];
+    }
+    rules[ruleIndex].conditions.conditions.push({ attribute: "", operator: "EQUALS", value: "" });
+    renderRules();
+  }
+
+  function removeCondition(ruleIndex, condIndex) {
+    rules[ruleIndex].conditions.conditions.splice(condIndex, 1);
+    renderRules();
+  }
+
+  function updateCondition(ruleIndex, condIndex, field, value) {
+    const cond = rules[ruleIndex].conditions.conditions[condIndex];
+    if (field === "value" && (cond.operator === "IN" || cond.operator === "NOT_IN")) {
+      cond.value = value.split(",").map(v => v.trim());
+    } else {
+      cond[field] = value;
+    }
+  }
+
+  function saveRules() {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "<%= flag_path(@flag) %>";
+
+    const methodInput = document.createElement("input");
+    methodInput.type = "hidden";
+    methodInput.name = "_method";
+    methodInput.value = "PATCH";
+    form.appendChild(methodInput);
+
+    const csrfInput = document.createElement("input");
+    csrfInput.type = "hidden";
+    csrfInput.name = "<%= request_forgery_protection_token %>";
+    csrfInput.value = "<%= form_authenticity_token %>";
+    form.appendChild(csrfInput);
+
+    // Send all flag params to preserve other fields
+    const keyInput = document.createElement("input");
+    keyInput.type = "hidden";
+    keyInput.name = "flag[key]";
+    keyInput.value = "<%= @flag.key %>";
+    form.appendChild(keyInput);
+
+    const valueInput = document.createElement("input");
+    valueInput.type = "hidden";
+    valueInput.name = "flag[value]";
+    valueInput.value = "<%= @flag.value %>";
+    form.appendChild(valueInput);
+
+    const typeInput = document.createElement("input");
+    typeInput.type = "hidden";
+    typeInput.name = "flag[value_type]";
+    typeInput.value = "<%= @flag.value_type %>";
+    form.appendChild(typeInput);
+
+    const enabledInput = document.createElement("input");
+    enabledInput.type = "hidden";
+    enabledInput.name = "flag[enabled]";
+    enabledInput.value = "<%= @flag.enabled? %>";
+    form.appendChild(enabledInput);
+
+    const rulesInput = document.createElement("input");
+    rulesInput.type = "hidden";
+    rulesInput.name = "flag[targeting_rules]";
+    rulesInput.value = JSON.stringify(rules);
+    form.appendChild(rulesInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+</script>

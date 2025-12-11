@@ -11,6 +11,7 @@ require_relative "rails/client"
 require_relative "rails/flag_accessor"
 require_relative "rails/helpers"
 require_relative "rails/railtie" if defined?(Rails::Railtie)
+require_relative "rails/engine" if defined?(Rails::Engine)
 
 # Test helpers are loaded separately: require "subflag/rails/test_helpers"
 
@@ -130,6 +131,7 @@ module Subflag
       end
 
       def build_active_record_provider
+        require_relative "rails/targeting"
         require_relative "rails/backends/active_record_provider"
         require_relative "rails/models/flag"
         Backends::ActiveRecordProvider.new

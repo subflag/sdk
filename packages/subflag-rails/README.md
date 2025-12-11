@@ -347,10 +347,11 @@ When using `backend: :active_record`, flags are stored in the `subflag_flags` ta
 | Column | Type | Description |
 |--------|------|-------------|
 | `key` | string | Flag name (lowercase, dashes, e.g., `new-checkout`) |
-| `value` | text | The flag value as a string |
+| `value` | text | Default value (what everyone gets) |
 | `value_type` | string | Type: `boolean`, `string`, `integer`, `float`, `object` |
 | `enabled` | boolean | Whether the flag is active (default: true) |
 | `description` | text | Optional description |
+| `targeting_rules` | json | Optional rules for showing different values to different users |
 
 ```ruby
 # Create flags
@@ -362,6 +363,150 @@ Subflag::Rails::Flag.enabled.find_each { |f| puts "#{f.key}: #{f.typed_value}" }
 # Disable a flag
 Subflag::Rails::Flag.find_by(key: "new-checkout")&.update!(enabled: false)
 ```
+
+### Targeting Rules (ActiveRecord)
+
+Show different flag values to different users based on their attributes. Perfect for internal testing before wider rollout.
+
+> **Tip:** Use the [Admin UI](#admin-ui-activerecord) to manage targeting rules visually instead of editing JSON.
+
+**First, configure user context:**
+
+```ruby
+# config/initializers/subflag.rb
+Subflag::Rails.configure do |config|
+  config.backend = :active_record
+
+  config.user_context do |user|
+    {
+      targeting_key: user.id.to_s,
+      email: user.email,
+      role: user.role,           # e.g., "admin", "developer", "qa"
+      plan: user.plan            # e.g., "free", "pro", "enterprise"
+    }
+  end
+end
+```
+
+**Create flags with targeting rules:**
+
+```ruby
+# Internal team sees new feature, everyone else sees old
+Subflag::Rails::Flag.create!(
+  key: "new-dashboard",
+  value: "false",                    # Default: everyone gets false
+  value_type: "boolean",
+  targeting_rules: [
+    {
+      "value" => "true",             # Internal team gets true
+      "conditions" => {
+        "type" => "OR",
+        "conditions" => [
+          { "attribute" => "email", "operator" => "ENDS_WITH", "value" => "@yourcompany.com" },
+          { "attribute" => "role", "operator" => "IN", "value" => ["admin", "developer", "qa"] }
+        ]
+      }
+    }
+  ]
+)
+```
+
+**Progressive rollout with multiple rules (first match wins):**
+
+```ruby
+Subflag::Rails::Flag.create!(
+  key: "max-projects",
+  value: "5",                        # Default: everyone gets 5
+  value_type: "integer",
+  targeting_rules: [
+    { "value" => "1000", "conditions" => { "type" => "AND", "conditions" => [{ "attribute" => "role", "operator" => "EQUALS", "value" => "admin" }] } },
+    { "value" => "100", "conditions" => { "type" => "AND", "conditions" => [{ "attribute" => "email", "operator" => "ENDS_WITH", "value" => "@yourcompany.com" }] } },
+    { "value" => "25", "conditions" => { "type" => "AND", "conditions" => [{ "attribute" => "plan", "operator" => "EQUALS", "value" => "pro" }] } }
+  ]
+)
+```
+
+**Supported operators:**
+
+| Operator | Example | Description |
+|----------|---------|-------------|
+| `EQUALS` | `{ "attribute" => "role", "operator" => "EQUALS", "value" => "admin" }` | Exact match |
+| `NOT_EQUALS` | `{ "attribute" => "env", "operator" => "NOT_EQUALS", "value" => "prod" }` | Not equal |
+| `IN` | `{ "attribute" => "role", "operator" => "IN", "value" => ["admin", "qa"] }` | Value in list |
+| `NOT_IN` | `{ "attribute" => "country", "operator" => "NOT_IN", "value" => ["RU", "CN"] }` | Value not in list |
+| `CONTAINS` | `{ "attribute" => "email", "operator" => "CONTAINS", "value" => "test" }` | String contains |
+| `NOT_CONTAINS` | `{ "attribute" => "email", "operator" => "NOT_CONTAINS", "value" => "spam" }` | String doesn't contain |
+| `STARTS_WITH` | `{ "attribute" => "user_id", "operator" => "STARTS_WITH", "value" => "test-" }` | String prefix |
+| `ENDS_WITH` | `{ "attribute" => "email", "operator" => "ENDS_WITH", "value" => "@company.com" }` | String suffix |
+| `GREATER_THAN` | `{ "attribute" => "age", "operator" => "GREATER_THAN", "value" => 18 }` | Numeric > |
+| `LESS_THAN` | `{ "attribute" => "items", "operator" => "LESS_THAN", "value" => 100 }` | Numeric < |
+| `GREATER_THAN_OR_EQUAL` | `{ "attribute" => "score", "operator" => "GREATER_THAN_OR_EQUAL", "value" => 80 }` | Numeric >= |
+| `LESS_THAN_OR_EQUAL` | `{ "attribute" => "score", "operator" => "LESS_THAN_OR_EQUAL", "value" => 50 }` | Numeric <= |
+| `MATCHES` | `{ "attribute" => "email", "operator" => "MATCHES", "value" => ".*@company\\.com$" }` | Regex match |
+
+**Combining conditions:**
+
+```ruby
+# OR: any condition matches
+{
+  "type" => "OR",
+  "conditions" => [
+    { "attribute" => "email", "operator" => "ENDS_WITH", "value" => "@company.com" },
+    { "attribute" => "role", "operator" => "EQUALS", "value" => "admin" }
+  ]
+}
+
+# AND: all conditions must match
+{
+  "type" => "AND",
+  "conditions" => [
+    { "attribute" => "plan", "operator" => "EQUALS", "value" => "enterprise" },
+    { "attribute" => "country", "operator" => "IN", "value" => ["US", "CA"] }
+  ]
+}
+```
+
+**How evaluation works:**
+
+1. Flag disabled? → return code default
+2. For each rule (in order): if context matches → return rule's value
+3. No rules matched? → return flag's default `value`
+
+This lets you progressively widen access by adding rules, without changing existing ones.
+
+### Admin UI (ActiveRecord)
+
+Mount the admin UI to manage flags and targeting rules visually:
+
+```ruby
+# config/routes.rb
+Rails.application.routes.draw do
+  mount Subflag::Rails::Engine => "/subflag"
+  # ... your other routes
+end
+```
+
+The admin UI provides:
+- List, create, edit, and delete flags
+- Toggle flags enabled/disabled
+- Visual targeting rule builder (no JSON editing)
+- Test rules against sample contexts
+
+**Secure the admin UI:**
+
+```ruby
+# config/initializers/subflag.rb
+Subflag::Rails.configure do |config|
+  config.backend = :active_record
+
+  # Require authentication for admin UI
+  config.admin_auth do
+    redirect_to main_app.root_path unless current_user&.admin?
+  end
+end
+```
+
+Visit `/subflag` in your browser to access the admin UI.
 
 ## Testing
 

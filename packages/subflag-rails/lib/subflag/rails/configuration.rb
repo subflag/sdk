@@ -48,6 +48,9 @@ module Subflag
       #   Set to nil to disable cross-request caching (default).
       attr_accessor :cache_ttl
 
+      # @return [Proc, nil] Admin authentication callback for the admin UI
+      attr_reader :admin_auth_callback
+
       def initialize
         @backend = :subflag
         @api_key = nil
@@ -56,6 +59,7 @@ module Subflag
         @logging_enabled = false
         @log_level = :debug
         @cache_ttl = nil
+        @admin_auth_callback = nil
       end
 
       # Set the backend with validation
@@ -115,6 +119,25 @@ module Subflag
         return nil unless user && @user_context_block
 
         @user_context_block.call(user)
+      end
+
+      # Configure authentication for the admin UI
+      #
+      # @yield [controller] Block called before each admin action
+      # @yieldparam controller [ActionController::Base] The controller instance
+      #
+      # @example Require admin role
+      #   config.admin_auth do
+      #     redirect_to main_app.root_path unless current_user&.admin?
+      #   end
+      #
+      # @example Use Devise authenticate
+      #   config.admin_auth do
+      #     authenticate_user!
+      #   end
+      def admin_auth(&block)
+        @admin_auth_callback = block if block_given?
+        @admin_auth_callback
       end
     end
   end
