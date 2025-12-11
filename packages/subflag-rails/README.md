@@ -11,7 +11,7 @@ Choose where your flags live:
 | Backend | Use Case | Flags Stored In |
 |---------|----------|-----------------|
 | `:subflag` | Production with dashboard, environments, targeting | Subflag Cloud |
-| `:active_record` | Self-hosted, no external dependencies | Your database |
+| `:active_record` | Self-hosted, no external dependencies, [built-in admin UI](#admin-ui-activerecord) | Your database |
 | `:memory` | Testing and development | In-memory hash |
 
 **Same API regardless of backend:**
