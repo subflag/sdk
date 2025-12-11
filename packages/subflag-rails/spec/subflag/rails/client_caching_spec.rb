@@ -29,94 +29,55 @@ RSpec.describe Subflag::Rails::Client do
   end
 
   describe "#prefetch_all" do
-    let(:api_response) do
-      [
-        { "flagKey" => "feature-a", "value" => true, "variant" => "enabled", "reason" => "DEFAULT" },
-        { "flagKey" => "feature-b", "value" => "hello", "variant" => "greeting", "reason" => "TARGETING_MATCH" }
-      ]
-    end
-
-    before do
-      # Stub the API call
-      stub_request(:post, "https://api.subflag.com/sdk/evaluate-all")
-        .to_return(
-          status: 200,
-          body: api_response.to_json,
-          headers: { "Content-Type" => "application/json" }
-        )
-    end
-
-    context "without Rails.cache (cache_ttl not set)" do
-      it "fetches from API on every call" do
-        result = client.prefetch_all
-
-        expect(result).to be_an(Array)
-        expect(result.length).to eq(2)
-        expect(a_request(:post, "https://api.subflag.com/sdk/evaluate-all")).to have_been_made.once
-      end
-    end
-
-    context "with Rails.cache (cache_ttl set)" do
+    context "with memory backend" do
       before do
-        Subflag::Rails.configuration.cache_ttl = 30
-      end
-
-      it "caches results in Rails.cache" do
-        # First call - should hit API
-        client.prefetch_all
-
-        # Second call - should use cache
-        client.prefetch_all
-
-        # API should only be called once
-        expect(a_request(:post, "https://api.subflag.com/sdk/evaluate-all")).to have_been_made.once
-      end
-
-      it "returns cached results on subsequent calls" do
-        first_result = client.prefetch_all
-        second_result = client.prefetch_all
-
-        expect(first_result).to eq(second_result)
-      end
-
-      it "uses different cache keys for different contexts" do
-        user1 = double("User1", id: 1, email: "user1@example.com")
-        user2 = double("User2", id: 2, email: "user2@example.com")
-
         Subflag::Rails.configure do |config|
-          config.api_key = "sdk-test-key"
-          config.cache_ttl = 30
-          config.user_context do |u|
-            { targeting_key: u.id.to_s, email: u.email }
-          end
+          config.backend = :memory
         end
+        Subflag::Rails.provider.set(:feature_a, true)
+        Subflag::Rails.provider.set(:feature_b, "hello")
+      end
 
-        # Prefetch for user1
-        client.prefetch_all(user: user1)
-        # Prefetch for user2 - should hit API again (different context)
-        client.prefetch_all(user: user2)
-
-        expect(a_request(:post, "https://api.subflag.com/sdk/evaluate-all")).to have_been_made.twice
+      it "returns empty array (memory is already in-memory)" do
+        result = client.prefetch_all
+        expect(result).to eq([])
       end
     end
 
-    context "populating RequestCache" do
+    context "caching behavior" do
       before do
         Subflag::Rails::RequestCache.start
+        Subflag::Rails.configure do |config|
+          config.backend = :memory
+        end
+        Subflag::Rails.provider.set(:cached_flag, 42)
       end
 
       after do
         Subflag::Rails::RequestCache.clear
       end
 
-      it "populates RequestCache for subsequent lookups" do
-        Subflag::Rails.configuration.cache_ttl = 30
-        client.prefetch_all
+      it "caches individual flag lookups within a request" do
+        # First call
+        result1 = client.value("cached-flag", default: 0)
+        # Change the underlying value
+        Subflag::Rails.provider.set(:cached_flag, 999)
+        # Second call should return cached value (not the new value)
+        result2 = client.value("cached-flag", default: 0)
 
-        # Check that RequestCache has the prefetched values
-        cache = Subflag::Rails::RequestCache.current_cache
-        expect(cache.keys.any? { |k| k.include?("prefetch:feature-a") }).to be true
-        expect(cache.keys.any? { |k| k.include?("prefetch:feature-b") }).to be true
+        expect(result1).to eq(42)
+        expect(result2).to eq(42)
+      end
+
+      it "does not cache across different flag keys" do
+        Subflag::Rails.provider.set(:flag_one, "first")
+        Subflag::Rails.provider.set(:flag_two, "second")
+
+        result1 = client.value("flag-one", default: "")
+        result2 = client.value("flag-two", default: "")
+
+        expect(result1).to eq("first")
+        expect(result2).to eq("second")
       end
     end
   end

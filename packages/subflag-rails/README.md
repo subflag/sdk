@@ -1,8 +1,25 @@
 # Subflag Rails
 
-Typed feature flags for Rails. Booleans, strings, numbers, and JSON — all targetable by user.
+Typed feature flags for Rails. Booleans, strings, numbers, and JSON — with pluggable backends.
 
 [Subflag](https://subflag.com)
+
+## Backends
+
+Choose where your flags live:
+
+| Backend | Use Case | Flags Stored In |
+|---------|----------|-----------------|
+| `:subflag` | Production with dashboard, environments, targeting | Subflag Cloud |
+| `:active_record` | Self-hosted, no external dependencies | Your database |
+| `:memory` | Testing and development | In-memory hash |
+
+**Same API regardless of backend:**
+
+```ruby
+subflag_enabled?(:new_checkout)           # Works with any backend
+subflag_value(:max_projects, default: 3)  # Works with any backend
+```
 
 ## Installation
 
@@ -10,9 +27,14 @@ Add to your Gemfile:
 
 ```ruby
 gem 'subflag-rails'
+
+# If using Subflag Cloud (backend: :subflag), also add:
+gem 'subflag-openfeature-provider'
 ```
 
-Run the generator:
+### Option 1: Subflag Cloud (Default)
+
+Dashboard, environments, percentage rollouts, and user targeting.
 
 ```bash
 rails generate subflag:install
@@ -30,6 +52,38 @@ subflag:
 ```
 
 Or set the `SUBFLAG_API_KEY` environment variable.
+
+### Option 2: ActiveRecord (Self-Hosted)
+
+Flags stored in your database. No external dependencies.
+
+```bash
+rails generate subflag:install --backend=active_record
+rails db:migrate
+```
+
+Create flags directly:
+
+```ruby
+Subflag::Rails::Flag.create!(key: "new-checkout", value: "true", value_type: "boolean")
+Subflag::Rails::Flag.create!(key: "max-projects", value: "100", value_type: "integer")
+Subflag::Rails::Flag.create!(key: "welcome-message", value: "Hello!", value_type: "string")
+```
+
+### Option 3: Memory (Testing)
+
+In-memory flags for tests and local development.
+
+```bash
+rails generate subflag:install --backend=memory
+```
+
+Set flags programmatically:
+
+```ruby
+Subflag::Rails.provider.set(:new_checkout, true)
+Subflag::Rails.provider.set(:max_projects, 100)
+```
 
 ## Usage
 
@@ -262,13 +316,16 @@ Subflag::Rails.prefetch_flags(user: current_user)
 
 ```ruby
 Subflag::Rails.configure do |config|
-  # API key (auto-loaded from credentials/ENV)
+  # Backend: :subflag (cloud), :active_record (self-hosted), :memory (testing)
+  config.backend = :subflag
+
+  # API key - required for :subflag backend
   config.api_key = "sdk-production-..."
 
   # API URL (default: https://api.subflag.com)
   config.api_url = "https://api.subflag.com"
 
-  # Cross-request caching via Rails.cache (optional)
+  # Cross-request caching via Rails.cache (optional, :subflag backend only)
   # When set, prefetched flags are cached for this duration
   config.cache_ttl = 30.seconds
 
@@ -276,11 +333,34 @@ Subflag::Rails.configure do |config|
   config.logging_enabled = Rails.env.development?
   config.log_level = :debug  # :debug, :info, :warn
 
-  # User context
+  # User context - works with all backends
   config.user_context do |user|
     { targeting_key: user.id.to_s, plan: user.plan }
   end
 end
+```
+
+### ActiveRecord Flag Model
+
+When using `backend: :active_record`, flags are stored in the `subflag_flags` table:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `key` | string | Flag name (lowercase, dashes, e.g., `new-checkout`) |
+| `value` | text | The flag value as a string |
+| `value_type` | string | Type: `boolean`, `string`, `integer`, `float`, `object` |
+| `enabled` | boolean | Whether the flag is active (default: true) |
+| `description` | text | Optional description |
+
+```ruby
+# Create flags
+Subflag::Rails::Flag.create!(key: "max-projects", value: "100", value_type: "integer")
+
+# Query flags
+Subflag::Rails::Flag.enabled.find_each { |f| puts "#{f.key}: #{f.typed_value}" }
+
+# Disable a flag
+Subflag::Rails::Flag.find_by(key: "new-checkout")&.update!(enabled: false)
 ```
 
 ## Testing

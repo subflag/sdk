@@ -1,0 +1,17 @@
+# frozen_string_literal: true
+
+class CreateSubflagFlags < ActiveRecord::Migration[<%= ActiveRecord::Migration.current_version %>]
+  def change
+    create_table :subflag_flags do |t|
+      t.string :key, null: false
+      t.string :value_type, null: false, default: "boolean"
+      t.text :value, null: false
+      t.boolean :enabled, null: false, default: true
+      t.text :description
+
+      t.timestamps
+    end
+
+    add_index :subflag_flags, :key, unique: true
+  end
+end

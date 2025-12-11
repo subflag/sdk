@@ -2,6 +2,10 @@
 
 module Subflag
   module Rails
+    # Lightweight struct for caching prefetched flag results
+    # Used by ActiveRecord and Memory backends where we don't have Subflag::EvaluationResult
+    PrefetchedFlag = Struct.new(:flag_key, :value, :reason, :variant, keyword_init: true)
+
     # Client for evaluating feature flags
     #
     # This is the low-level client used by FlagAccessor.
@@ -10,8 +14,11 @@ module Subflag
     class Client
       # Prefetch all flags for a user/context
       #
-      # Fetches all flags in a single API call and caches them.
-      # Subsequent flag lookups will use the cached values.
+      # Fetches all flags and caches them for subsequent lookups.
+      # Behavior varies by backend:
+      # - :subflag — Single API call to fetch all flags
+      # - :active_record — Single DB query to load all enabled flags
+      # - :memory — No-op (flags already in memory)
       #
       # @param user [Object, nil] The user object for targeting
       # @param context [Hash, nil] Additional context attributes
@@ -23,16 +30,17 @@ module Subflag
       #   subflag_enabled?(:new_feature)
       #
       def prefetch_all(user: nil, context: nil)
-        ctx = ContextBuilder.build(user: user, context: context)
-        context_hash = ctx ? ctx.hash : "no_context"
-
-        # Use Rails.cache for cross-request caching if enabled
-        if configuration.rails_cache_enabled?
-          return prefetch_with_rails_cache(ctx, context_hash)
+        case configuration.backend
+        when :subflag
+          prefetch_from_subflag_api(user: user, context: context)
+        when :active_record
+          prefetch_from_active_record(user: user, context: context)
+        when :memory
+          # Already in memory, nothing to prefetch
+          []
+        else
+          []
         end
-
-        # Otherwise fetch directly from API (per-request cache only)
-        prefetch_from_api(ctx, context_hash)
       end
 
       # Check if a boolean flag is enabled
@@ -121,6 +129,20 @@ module Subflag
 
       private
 
+      # Prefetch flags from Subflag Cloud API
+      def prefetch_from_subflag_api(user:, context:)
+        ctx = ContextBuilder.build(user: user, context: context)
+        context_hash = ctx ? ctx.hash : "no_context"
+
+        # Use Rails.cache for cross-request caching if enabled
+        if configuration.rails_cache_enabled?
+          return prefetch_with_rails_cache(ctx, context_hash)
+        end
+
+        # Otherwise fetch directly from API (per-request cache only)
+        prefetch_from_api(ctx, context_hash)
+      end
+
       # Fetch flags from API and populate RequestCache
       def prefetch_from_api(ctx, context_hash)
         subflag_context = build_subflag_context(ctx)
@@ -151,7 +173,7 @@ module Subflag
         cached_data
       end
 
-      # Populate RequestCache from cached hash data
+      # Populate RequestCache from cached hash data (Subflag API)
       def populate_request_cache_from_data(data_array, context_hash)
         return unless RequestCache.enabled?
 
@@ -159,6 +181,30 @@ module Subflag
           result = ::Subflag::EvaluationResult.from_response(result_hash)
           cache_prefetched_result(result, context_hash)
         end
+      end
+
+      # Prefetch flags from ActiveRecord database
+      # Loads all enabled flags in one query and caches their values
+      def prefetch_from_active_record(user:, context:)
+        return [] unless RequestCache.enabled?
+
+        ctx = ContextBuilder.build(user: user, context: context)
+        context_hash = ctx ? ctx.hash : "no_context"
+
+        prefetched = []
+
+        Subflag::Rails::Flag.enabled.find_each do |flag|
+          prefetch_key = "subflag:prefetch:#{flag.key}:#{context_hash}"
+          RequestCache.current_cache[prefetch_key] = PrefetchedFlag.new(
+            flag_key: flag.key,
+            value: flag.typed_value,
+            reason: "STATIC",
+            variant: "default"
+          )
+          prefetched << { flag_key: flag.key, value: flag.typed_value }
+        end
+
+        prefetched
       end
 
       def build_cache_key(flag_key, ctx, type)

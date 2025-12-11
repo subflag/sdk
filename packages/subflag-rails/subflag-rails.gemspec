@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email = ["support@subflag.com"]
 
   spec.summary = "Typed feature flags for Rails - booleans, strings, numbers, and JSON"
-  spec.description = "Rails integration for Subflag feature flags. Get typed values (boolean, string, integer, double, object) with user targeting. Includes generators, view helpers, and ActiveRecord context integration."
+  spec.description = "Feature flags for Rails with pluggable backends. Use Subflag Cloud (SaaS), ActiveRecord (self-hosted), or Memory (testing). Get typed values (boolean, string, integer, double, object) with the same API regardless of backend."
   spec.homepage = "https://subflag.com"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1.0"
@@ -24,9 +24,15 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # Runtime dependencies
-  spec.add_dependency "subflag-openfeature-provider", ">= 0.3.1", "< 1.0"
+  # Core OpenFeature SDK (always needed)
+  spec.add_dependency "openfeature-sdk", ">= 0.3", "< 1.0"
   spec.add_dependency "railties", ">= 6.1"
   spec.add_dependency "actionview", ">= 6.1"
+
+  # Note: subflag-openfeature-provider is lazily loaded and only required
+  # when using backend: :subflag (Subflag Cloud). Users of :active_record
+  # or :memory backends don't need it. If using Subflag Cloud, add to Gemfile:
+  #   gem 'subflag-openfeature-provider', '~> 0.3'
 
   # Development dependencies
   spec.add_development_dependency "bundler", "~> 2.0"

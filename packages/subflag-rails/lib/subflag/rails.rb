@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "open_feature/sdk"
-require "subflag"
 
 require_relative "rails/version"
 require_relative "rails/configuration"
@@ -27,12 +26,23 @@ module Subflag
 
       # Configure Subflag for Rails
       #
-      # @example
+      # @example Using Subflag Cloud (SaaS)
       #   Subflag::Rails.configure do |config|
+      #     config.backend = :subflag
       #     config.api_key = Rails.application.credentials.subflag_api_key
       #     config.user_context do |user|
       #       { targeting_key: user.id.to_s, email: user.email, plan: user.plan }
       #     end
+      #   end
+      #
+      # @example Using ActiveRecord (self-hosted)
+      #   Subflag::Rails.configure do |config|
+      #     config.backend = :active_record
+      #   end
+      #
+      # @example Using Memory (testing)
+      #   Subflag::Rails.configure do |config|
+      #     config.backend = :memory
       #   end
       #
       # @yield [Configuration]
@@ -46,6 +56,16 @@ module Subflag
       # @return [Client]
       def client
         @client ||= Client.new
+      end
+
+      # Access the current provider instance
+      #
+      # Useful for the Memory backend where you can set flags directly:
+      #   Subflag::Rails.provider.set(:my_flag, true)
+      #
+      # @return [Object] The current OpenFeature provider
+      def provider
+        @provider
       end
 
       # Prefetch all flags for a user/context in a single API call
@@ -72,21 +92,52 @@ module Subflag
       def reset!
         @configuration = Configuration.new
         @client = nil
+        @provider = nil
       end
 
       private
 
       def setup_provider
-        return unless configuration.api_key
+        @provider = build_provider
+        return unless @provider
 
-        provider = ::Subflag::Provider.new(
+        OpenFeature::SDK.configure do |config|
+          config.set_provider(@provider)
+        end
+      end
+
+      def build_provider
+        case configuration.backend
+        when :subflag
+          build_subflag_provider
+        when :active_record
+          build_active_record_provider
+        when :memory
+          build_memory_provider
+        else
+          raise ArgumentError, "Unknown backend: #{configuration.backend}. Use :subflag, :active_record, or :memory"
+        end
+      end
+
+      def build_subflag_provider
+        return nil unless configuration.api_key
+
+        require_relative "rails/backends/subflag_provider"
+        Backends::SubflagProvider.new(
           api_key: configuration.api_key,
           api_url: configuration.api_url
         )
+      end
 
-        OpenFeature::SDK.configure do |config|
-          config.set_provider(provider)
-        end
+      def build_active_record_provider
+        require_relative "rails/backends/active_record_provider"
+        require_relative "rails/models/flag"
+        Backends::ActiveRecordProvider.new
+      end
+
+      def build_memory_provider
+        require_relative "rails/backends/memory_provider"
+        Backends::MemoryProvider.new
       end
     end
   end

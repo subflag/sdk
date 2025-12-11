@@ -93,8 +93,9 @@ def stub_flag_evaluation(flag_key:, value:, variant: "default", reason: "DEFAULT
   allow(mock_client).to receive(:fetch_object_details).and_return(details)
 end
 
-def configure_subflag(api_key: "sdk-test-key")
+def configure_subflag(api_key: "sdk-test-key", backend: :memory)
   Subflag::Rails.configure do |config|
-    config.api_key = api_key
+    config.backend = backend
+    config.api_key = api_key if backend == :subflag
   end
 end

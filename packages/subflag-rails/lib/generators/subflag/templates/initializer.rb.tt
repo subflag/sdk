@@ -2,17 +2,31 @@
 
 # Subflag configuration
 #
+<% if options[:backend] == "subflag" -%>
 # API key is automatically loaded from:
 # 1. Rails credentials (subflag.api_key or subflag_api_key)
 # 2. SUBFLAG_API_KEY environment variable
+<% elsif options[:backend] == "active_record" -%>
+# Using ActiveRecord backend - flags stored in subflag_flags table
+<% else -%>
+# Using Memory backend - flags stored in memory (testing only)
+<% end -%>
 
 Subflag::Rails.configure do |config|
-  # Uncomment to manually set API key
-  # config.api_key = Rails.application.credentials.dig(:subflag, :api_key)
+  # Backend: :subflag (cloud), :active_record (self-hosted), :memory (testing)
+  config.backend = :<%= options[:backend] %>
+<% if options[:backend] == "subflag" -%>
+
+  # Your Subflag API key
+  # Get one at https://subflag.com
+  config.api_key = ENV["SUBFLAG_API_KEY"] || Rails.application.credentials.dig(:subflag, :api_key)
+<% end -%>
+<% if options[:backend] != "memory" -%>
 
   # Enable logging in development
   config.logging_enabled = Rails.env.development?
   config.log_level = :debug
+<% end -%>
 
   # Configure user context for targeting
   # This enables per-user flag values (e.g., different limits by plan)

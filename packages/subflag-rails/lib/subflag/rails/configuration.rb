@@ -23,6 +23,14 @@ module Subflag
     #   end
     #
     class Configuration
+      VALID_BACKENDS = %i[subflag active_record memory].freeze
+
+      # @return [Symbol] Backend to use (:subflag, :active_record, :memory)
+      #   - :subflag — Subflag Cloud SaaS (default)
+      #   - :active_record — Self-hosted, flags stored in your database
+      #   - :memory — In-memory store for testing
+      attr_reader :backend
+
       # @return [String, nil] The Subflag API key
       attr_accessor :api_key
 
@@ -41,12 +49,26 @@ module Subflag
       attr_accessor :cache_ttl
 
       def initialize
+        @backend = :subflag
         @api_key = nil
         @api_url = "https://api.subflag.com"
         @user_context_block = nil
         @logging_enabled = false
         @log_level = :debug
         @cache_ttl = nil
+      end
+
+      # Set the backend with validation
+      #
+      # @param value [Symbol] The backend to use
+      # @raise [ArgumentError] If the backend is invalid
+      def backend=(value)
+        value = value.to_sym
+        unless VALID_BACKENDS.include?(value)
+          raise ArgumentError, "Invalid backend: #{value}. Use one of: #{VALID_BACKENDS.join(', ')}"
+        end
+
+        @backend = value
       end
 
       # Check if cross-request caching via Rails.cache is enabled
