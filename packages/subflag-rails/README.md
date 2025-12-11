@@ -438,10 +438,10 @@ Subflag::Rails::Flag.create!(
 | `NOT_CONTAINS` | `{ "attribute" => "email", "operator" => "NOT_CONTAINS", "value" => "spam" }` | String doesn't contain |
 | `STARTS_WITH` | `{ "attribute" => "user_id", "operator" => "STARTS_WITH", "value" => "test-" }` | String prefix |
 | `ENDS_WITH` | `{ "attribute" => "email", "operator" => "ENDS_WITH", "value" => "@company.com" }` | String suffix |
-| `GREATER_THAN` | `{ "attribute" => "age", "operator" => "GREATER_THAN", "value" => 18 }` | Numeric > |
-| `LESS_THAN` | `{ "attribute" => "items", "operator" => "LESS_THAN", "value" => 100 }` | Numeric < |
-| `GREATER_THAN_OR_EQUAL` | `{ "attribute" => "score", "operator" => "GREATER_THAN_OR_EQUAL", "value" => 80 }` | Numeric >= |
-| `LESS_THAN_OR_EQUAL` | `{ "attribute" => "score", "operator" => "LESS_THAN_OR_EQUAL", "value" => 50 }` | Numeric <= |
+| `GREATER_THAN` | `{ "attribute" => "age", "operator" => "GREATER_THAN", "value" => 18 }` | Numeric greater than |
+| `LESS_THAN` | `{ "attribute" => "items", "operator" => "LESS_THAN", "value" => 100 }` | Numeric less than |
+| `GREATER_THAN_OR_EQUAL` | `{ "attribute" => "score", "operator" => "GREATER_THAN_OR_EQUAL", "value" => 80 }` | Numeric greater or equal |
+| `LESS_THAN_OR_EQUAL` | `{ "attribute" => "score", "operator" => "LESS_THAN_OR_EQUAL", "value" => 50 }` | Numeric less or equal |
 | `MATCHES` | `{ "attribute" => "email", "operator" => "MATCHES", "value" => ".*@company\\.com$" }` | Regex match |
 
 **Combining conditions:**
