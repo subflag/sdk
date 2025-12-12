@@ -27,7 +27,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Pluggable backends**: Choose where flags are stored
+- **Selectable backends**: Choose where flags are stored
   - `:subflag` - Subflag Cloud (default)
   - `:active_record` - Self-hosted, flags in your database
   - `:memory` - In-memory for testing

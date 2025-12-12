@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email = ["support@subflag.com"]
 
   spec.summary = "Typed feature flags for Rails - booleans, strings, numbers, and JSON"
-  spec.description = "Feature flags for Rails with pluggable backends. Use Subflag Cloud (SaaS), ActiveRecord (self-hosted), or Memory (testing). Get typed values (boolean, string, integer, double, object) with the same API regardless of backend."
+  spec.description = "Feature flags for Rails with selectable backends. Use Subflag Cloud (SaaS), ActiveRecord (self-hosted), or Memory (testing). Get typed values (boolean, string, integer, double, object) with the same API regardless of backend."
   spec.homepage = "https://subflag.com"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1.0"

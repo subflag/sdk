@@ -1,6 +1,6 @@
 # Subflag Rails
 
-Typed feature flags for Rails. Booleans, strings, numbers, and JSON — with pluggable backends.
+Typed feature flags for Rails. Booleans, strings, numbers, and JSON — with selectable backends.
 
 [Subflag](https://subflag.com)
 
