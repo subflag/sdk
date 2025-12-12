@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2025-12-11
+
+### Added
+
+- **Admin UI**: Mount at `/subflag` to manage flags visually
+  - List, create, edit, and delete flags
+  - Toggle flags enabled/disabled
+  - Visual targeting rule builder (no JSON editing required)
+  - Test rules against sample contexts
+  - Configurable authentication via `config.admin_auth`
+- **Targeting rules for ActiveRecord backend**: Return different values based on user attributes
+  - 12 comparison operators: EQUALS, NOT_EQUALS, IN, NOT_IN, CONTAINS, NOT_CONTAINS, STARTS_WITH, ENDS_WITH, GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL, MATCHES
+  - AND/OR condition groups
+  - First-match evaluation order
+- **TargetingEngine**: Evaluates rules against user context
+
+### Changed
+
+- `subflag_flags` table now includes `targeting_rules` column (JSON/JSONB)
+- Generator creates migration with JSONB for PostgreSQL, JSON for other databases
+
+## [0.4.0] - 2025-12-09
+
+### Added
+
+- **Pluggable backends**: Choose where flags are stored
+  - `:subflag` - Subflag Cloud (default)
+  - `:active_record` - Self-hosted, flags in your database
+  - `:memory` - In-memory for testing
+- **ActiveRecord backend**: Store flags in `subflag_flags` table
+- **Memory backend**: Programmatic flag management for tests
+- Generator `--backend` option to configure storage
+
 ## [0.3.0] - 2025-12-07
 
 ### Added
