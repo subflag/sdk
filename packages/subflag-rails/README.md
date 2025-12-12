@@ -486,6 +486,8 @@ Rails.application.routes.draw do
 end
 ```
 
+![Subflag Admin UI](https://raw.githubusercontent.com/subflag/sdk/main/packages/subflag-rails/docs/admin-ui.png)
+
 The admin UI provides:
 - List, create, edit, and delete flags
 - Toggle flags enabled/disabled
