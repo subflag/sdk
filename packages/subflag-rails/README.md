@@ -342,7 +342,9 @@ end
 
 ### ActiveRecord Flag Model
 
-When using `backend: :active_record`, flags are stored in the `subflag_flags` table:
+> **Note:** This section only applies when using `backend: :active_record`. For Subflag Cloud, manage flags in the [dashboard](https://app.subflag.com).
+
+Flags are stored in the `subflag_flags` table:
 
 | Column | Type | Description |
 |--------|------|-------------|
