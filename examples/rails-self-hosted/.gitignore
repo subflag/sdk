@@ -1,0 +1,20 @@
+# Environment
+.env
+
+# Credentials
+config/master.key
+config/credentials.yml.enc
+config/credentials/*.key
+
+# Database
+*.sqlite3
+*.sqlite3-*
+
+# Logs
+/log/*
+
+# Temp files
+/tmp/
+
+# Storage
+/storage/*
