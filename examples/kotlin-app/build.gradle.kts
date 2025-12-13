@@ -13,7 +13,7 @@ repositories {
 
 dependencies {
     // Subflag OpenFeature provider from JitPack
-    implementation("com.github.subflag:sdk:sdk-kotlin-v0.3.0")
+    implementation("com.github.subflag:sdk:sdk-kotlin-v0.5.0")
 }
 
 application {

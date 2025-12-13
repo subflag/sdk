@@ -1,17 +1,17 @@
 plugins {
-    kotlin("jvm") version "1.9.22"
+    kotlin("jvm") version "2.1.10"
     `java-library`
     `maven-publish`
 }
 
 group = "com.subflag"
-version = "0.3.0"
+version = "0.5.0"
 
 repositories {
     mavenCentral()
 }
 
-val ktorVersion = "2.3.7"
+val ktorVersion = "3.2.0"
 
 dependencies {
     // OpenFeature SDK
