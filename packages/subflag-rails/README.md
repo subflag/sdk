@@ -1,8 +1,52 @@
 # Subflag Rails
 
-Typed feature flags for Rails. Booleans, strings, numbers, and JSON — with selectable backends.
+Feature flags that return strings, numbers, JSON — not just booleans.
 
-[Subflag](https://subflag.com)
+```ruby
+limit = subflag_value(:upload_limit_mb, default: 10)
+tier_config = subflag_value(:pricing_tiers, default: { basic: 5, pro: 50 })
+welcome = subflag_value(:welcome_message, default: "Hello")
+```
+
+Target different values to different users:
+
+```ruby
+# config/initializers/subflag.rb
+Subflag::Rails.configure do |config|
+  config.backend = :active_record
+
+  config.user_context do |user|
+    { targeting_key: user.id.to_s, plan: user.plan, email: user.email }
+  end
+end
+```
+
+```ruby
+# Premium users get 100, free users get 10
+subflag_value(:max_projects, default: 10)
+```
+
+Self-hosted or cloud. Same API.
+
+## Quick Start
+
+```ruby
+gem "subflag-rails"
+```
+
+```bash
+rails generate subflag:install --backend=active_record
+rails db:migrate
+```
+
+```ruby
+# config/routes.rb
+mount Subflag::Rails::Engine => "/subflag"
+```
+
+No external dependencies. Admin UI included.
+
+---
 
 ## Backends
 
@@ -10,31 +54,18 @@ Choose where your flags live:
 
 | Backend | Use Case | Flags Stored In |
 |---------|----------|-----------------|
-| `:subflag` | Production with dashboard, environments, targeting | Subflag Cloud |
 | `:active_record` | Self-hosted, no external dependencies, [built-in admin UI](#admin-ui-activerecord) | Your database |
+| `:subflag` | Dashboard, environments, percentage rollouts | [Subflag Cloud](https://subflag.com) |
 | `:memory` | Testing and development | In-memory hash |
 
-**Same API regardless of backend:**
-
-```ruby
-subflag_enabled?(:new_checkout)           # Works with any backend
-subflag_value(:max_projects, default: 3)  # Works with any backend
-```
-
-## Installation
-
-Add to your Gemfile:
-
-```ruby
-gem 'subflag-rails'
-
-# If using Subflag Cloud (backend: :subflag), also add:
-gem 'subflag-openfeature-provider'
-```
-
-### Option 1: Subflag Cloud (Default)
+### Subflag Cloud
 
 Dashboard, environments, percentage rollouts, and user targeting.
+
+```ruby
+gem "subflag-rails"
+gem "subflag-openfeature-provider"
+```
 
 ```bash
 rails generate subflag:install
@@ -53,24 +84,7 @@ subflag:
 
 Or set the `SUBFLAG_API_KEY` environment variable.
 
-### Option 2: ActiveRecord (Self-Hosted)
-
-Flags stored in your database. No external dependencies.
-
-```bash
-rails generate subflag:install --backend=active_record
-rails db:migrate
-```
-
-Create flags directly:
-
-```ruby
-Subflag::Rails::Flag.create!(key: "new-checkout", value: "true", value_type: "boolean")
-Subflag::Rails::Flag.create!(key: "max-projects", value: "100", value_type: "integer")
-Subflag::Rails::Flag.create!(key: "welcome-message", value: "Hello!", value_type: "string")
-```
-
-### Option 3: Memory (Testing)
+### Memory (Testing)
 
 In-memory flags for tests and local development.
 
