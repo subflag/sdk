@@ -49,6 +49,8 @@
   .rule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
   .rule-value { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
   .rule-value input { width: 200px; }
+  .rule-percentage { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .rule-percentage input { width: 80px; }
   .rule-logic { margin-bottom: 10px; }
   .rule-logic label { margin-right: 15px; }
   .condition { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
@@ -94,6 +96,8 @@
   function renderRule(rule, ruleIndex) {
     const conditions = rule.conditions?.conditions || [];
     const logicType = rule.conditions?.type || "AND";
+    const percentage = rule.percentage;
+    const hasConditions = conditions.length > 0;
 
     return `
       <div class="rule" data-rule-index="${ruleIndex}">
@@ -105,7 +109,13 @@
           <label>Return value:</label>
           <input type="text" value="${escapeHtml(rule.value || '')}" onchange="updateRuleValue(${ruleIndex}, this.value)" placeholder="value when matched">
         </div>
-        <div class="rule-logic">
+        <div class="rule-percentage">
+          <label>Percentage rollout:</label>
+          <input type="number" min="0" max="100" value="${percentage ?? ''}" onchange="updateRulePercentage(${ruleIndex}, this.value)" placeholder="">
+          <span>% of users</span>
+          <small style="color: #666;">(leave empty to match all)</small>
+        </div>
+        <div class="rule-logic" ${!hasConditions && percentage ? 'style="opacity: 0.5;"' : ''}>
           <label><input type="radio" name="logic-${ruleIndex}" value="AND" ${logicType === 'AND' ? 'checked' : ''} onchange="updateLogic(${ruleIndex}, 'AND')"> ALL match</label>
           <label><input type="radio" name="logic-${ruleIndex}" value="OR" ${logicType === 'OR' ? 'checked' : ''} onchange="updateLogic(${ruleIndex}, 'OR')"> ANY match</label>
         </div>
@@ -113,6 +123,7 @@
           ${conditions.map((c, cIndex) => renderCondition(c, ruleIndex, cIndex)).join("")}
         </div>
         <button type="button" class="btn btn-sm" onclick="addCondition(${ruleIndex})">+ Add Condition</button>
+        <small style="display: block; margin-top: 5px; color: #666;">${hasConditions && percentage ? 'User must match conditions AND be in percentage' : ''}</small>
       </div>
     `;
   }
@@ -139,7 +150,7 @@
   function addRule() {
     rules.push({
       value: "",
-      conditions: { type: "AND", conditions: [{ attribute: "", operator: "EQUALS", value: "" }] }
+      conditions: { type: "AND", conditions: [] }
     });
     renderRules();
   }
@@ -151,6 +162,15 @@
 
   function updateRuleValue(ruleIndex, value) {
     rules[ruleIndex].value = value;
+  }
+
+  function updateRulePercentage(ruleIndex, value) {
+    if (value === '' || value === null) {
+      delete rules[ruleIndex].percentage;
+    } else {
+      rules[ruleIndex].percentage = parseInt(value, 10);
+    }
+    renderRules();
   }
 
   function updateLogic(ruleIndex, type) {
@@ -180,6 +200,19 @@
   }
 
   function saveRules() {
+    // Clean up rules before saving
+    const cleanedRules = rules.map(rule => {
+      const cleaned = { value: rule.value };
+      if (rule.percentage !== undefined && rule.percentage !== null) {
+        cleaned.percentage = rule.percentage;
+      }
+      const conditions = rule.conditions?.conditions?.filter(c => c.attribute && c.operator);
+      if (conditions && conditions.length > 0) {
+        cleaned.conditions = { type: rule.conditions?.type || "AND", conditions };
+      }
+      return cleaned;
+    });
+
     const form = document.createElement("form");
     form.method = "POST";
     form.action = "<%= flag_path(@flag) %>";
@@ -224,7 +257,7 @@
     const rulesInput = document.createElement("input");
     rulesInput.type = "hidden";
     rulesInput.name = "flag[targeting_rules]";
-    rulesInput.value = JSON.stringify(rules);
+    rulesInput.value = JSON.stringify(cleanedRules);
     form.appendChild(rulesInput);
 
     document.body.appendChild(form);
