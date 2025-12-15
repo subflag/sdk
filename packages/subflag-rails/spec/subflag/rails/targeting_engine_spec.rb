@@ -327,4 +327,184 @@ RSpec.describe Subflag::Rails::TargetingEngine do
       end
     end
   end
+
+  describe ".evaluate_percentage" do
+    let(:flag_key) { "test-feature" }
+
+    context "edge cases" do
+      it "returns false for 0%" do
+        expect(described_class.evaluate_percentage("user-1", flag_key, 0)).to be false
+      end
+
+      it "returns true for 100%" do
+        expect(described_class.evaluate_percentage("user-1", flag_key, 100)).to be true
+      end
+    end
+
+    context "consistency" do
+      it "returns the same result for the same user and flag" do
+        results = 10.times.map do
+          described_class.evaluate_percentage("user-123", flag_key, 50)
+        end
+
+        expect(results.uniq.size).to eq(1)
+      end
+
+      it "returns different results for different users (given enough samples)" do
+        results = 100.times.map do |i|
+          described_class.evaluate_percentage("user-#{i}", flag_key, 50)
+        end
+
+        expect(results).to include(true)
+        expect(results).to include(false)
+      end
+    end
+
+    context "distribution" do
+      it "produces approximately correct distribution for 50%" do
+        sample_size = 1000
+        true_count = sample_size.times.count do |i|
+          described_class.evaluate_percentage("user-#{i}", flag_key, 50)
+        end
+
+        expect(true_count).to be_within(100).of(500)
+      end
+
+      it "produces approximately correct distribution for 25%" do
+        sample_size = 1000
+        true_count = sample_size.times.count do |i|
+          described_class.evaluate_percentage("user-#{i}", flag_key, 25)
+        end
+
+        expect(true_count).to be_within(100).of(250)
+      end
+    end
+
+    context "flag independence" do
+      it "produces different bucketing for different flags" do
+        user_key = "user-stable"
+        results = 50.times.map do |i|
+          [
+            described_class.evaluate_percentage(user_key, "flag-#{i}", 50),
+            described_class.evaluate_percentage(user_key, "flag-#{i + 100}", 50)
+          ]
+        end
+
+        differing = results.count { |r| r[0] != r[1] }
+        expect(differing).to be > 5
+      end
+    end
+  end
+
+  describe ".evaluate with percentage rules" do
+    let(:flag_key) { "beta-feature" }
+
+    context "percentage-only rules" do
+      let(:rules) do
+        [{ "value" => "beta", "percentage" => 50 }]
+      end
+
+      it "returns value for users in the percentage" do
+        in_bucket_user = (1..100).find do |i|
+          described_class.evaluate_percentage("user-#{i}", flag_key, 50)
+        end
+
+        context = { targeting_key: "user-#{in_bucket_user}" }
+        expect(described_class.evaluate(rules, context, flag_key: flag_key)).to eq("beta")
+      end
+
+      it "returns nil for users outside the percentage" do
+        outside_bucket_user = (1..100).find do |i|
+          !described_class.evaluate_percentage("user-#{i}", flag_key, 50)
+        end
+
+        context = { targeting_key: "user-#{outside_bucket_user}" }
+        expect(described_class.evaluate(rules, context, flag_key: flag_key)).to be_nil
+      end
+
+      it "returns nil when context has no targeting_key" do
+        context = { email: "test@example.com" }
+        expect(described_class.evaluate(rules, context, flag_key: flag_key)).to be_nil
+      end
+
+      it "returns nil when flag_key is not provided" do
+        context = { targeting_key: "user-1" }
+        expect(described_class.evaluate(rules, context)).to be_nil
+      end
+    end
+
+    context "segment + percentage rules" do
+      let(:rules) do
+        [{
+          "value" => "beta",
+          "conditions" => {
+            "type" => "AND",
+            "conditions" => [
+              { "attribute" => "plan", "operator" => "EQUALS", "value" => "pro" }
+            ]
+          },
+          "percentage" => 50
+        }]
+      end
+
+      it "returns value only when segment AND percentage match" do
+        in_bucket_user = (1..100).find do |i|
+          described_class.evaluate_percentage("user-#{i}", flag_key, 50)
+        end
+
+        context = { targeting_key: "user-#{in_bucket_user}", plan: "pro" }
+        expect(described_class.evaluate(rules, context, flag_key: flag_key)).to eq("beta")
+      end
+
+      it "returns nil when segment matches but percentage does not" do
+        outside_bucket_user = (1..100).find do |i|
+          !described_class.evaluate_percentage("user-#{i}", flag_key, 50)
+        end
+
+        context = { targeting_key: "user-#{outside_bucket_user}", plan: "pro" }
+        expect(described_class.evaluate(rules, context, flag_key: flag_key)).to be_nil
+      end
+
+      it "returns nil when segment does not match (even if percentage would)" do
+        in_bucket_user = (1..100).find do |i|
+          described_class.evaluate_percentage("user-#{i}", flag_key, 50)
+        end
+
+        context = { targeting_key: "user-#{in_bucket_user}", plan: "free" }
+        expect(described_class.evaluate(rules, context, flag_key: flag_key)).to be_nil
+      end
+    end
+
+    context "multiple rules with percentages" do
+      let(:rules) do
+        [
+          {
+            "value" => "vip",
+            "conditions" => {
+              "type" => "AND",
+              "conditions" => [{ "attribute" => "role", "operator" => "EQUALS", "value" => "admin" }]
+            }
+          },
+          {
+            "value" => "beta",
+            "percentage" => 20
+          }
+        ]
+      end
+
+      it "admins always get VIP (no percentage check)" do
+        context = { targeting_key: "admin-user", role: "admin" }
+        expect(described_class.evaluate(rules, context, flag_key: flag_key)).to eq("vip")
+      end
+
+      it "non-admins get beta based on percentage" do
+        in_bucket_user = (1..1000).find do |i|
+          described_class.evaluate_percentage("user-#{i}", flag_key, 20)
+        end
+
+        context = { targeting_key: "user-#{in_bucket_user}", role: "user" }
+        expect(described_class.evaluate(rules, context, flag_key: flag_key)).to eq("beta")
+      end
+    end
+  end
 end

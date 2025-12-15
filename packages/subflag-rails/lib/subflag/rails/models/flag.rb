@@ -70,7 +70,7 @@ module Subflag
       def evaluate(context: nil, expected_type: nil)
         rules = parsed_targeting_rules
         raw_value = if rules.present? && context.present?
-                      matched = TargetingEngine.evaluate(rules, context)
+                      matched = TargetingEngine.evaluate(rules, context, flag_key: key)
                       matched || value
                     else
                       value
@@ -146,7 +146,20 @@ module Subflag
 
           rule = rule.transform_keys(&:to_s)
           errors.add(:targeting_rules, "rule #{index} must have a 'value' key") unless rule.key?("value")
-          errors.add(:targeting_rules, "rule #{index} must have a 'conditions' key") unless rule.key?("conditions")
+
+          has_conditions = rule.key?("conditions") && rule["conditions"].present?
+          has_percentage = rule.key?("percentage")
+
+          unless has_conditions || has_percentage
+            errors.add(:targeting_rules, "rule #{index} must have 'conditions' and/or 'percentage'")
+          end
+
+          if has_percentage
+            pct = rule["percentage"]
+            unless pct.is_a?(Numeric) && pct >= 0 && pct <= 100
+              errors.add(:targeting_rules, "rule #{index} percentage must be a number between 0 and 100")
+            end
+          end
         end
       end
     end

@@ -9,7 +9,7 @@ gem "puma", ">= 5.0"
 
 # ===== Subflag Feature Flag Integration =====
 # Subflag Rails SDK - typed feature flags with view helpers
-gem "subflag-rails", "~> 0.5"
+gem "subflag-rails", "~> 0.6"
 # Required for Subflag Cloud backend (backend: :subflag)
 gem "subflag-openfeature-provider", "~> 0.3"
 

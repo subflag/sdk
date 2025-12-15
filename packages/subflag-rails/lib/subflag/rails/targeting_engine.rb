@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "murmurhash3"
+
 module Subflag
   module Rails
     # Evaluates targeting rules against evaluation contexts.
@@ -34,25 +36,56 @@ module Subflag
         #
         # @param rules [Array<Hash>, nil] Array of targeting rules with values
         # @param context [Hash, nil] Evaluation context with attributes
+        # @param flag_key [String, nil] The flag key (required for percentage rollouts)
         # @return [String, nil] The matched rule's value, or nil if no match
-        def evaluate(rules, context)
+        def evaluate(rules, context, flag_key: nil)
           return nil if rules.nil? || rules.empty?
           return nil if context.nil? || context.empty?
 
-          # Normalize context keys to strings for comparison
           normalized_context = normalize_context(context)
+          targeting_key = extract_targeting_key(normalized_context)
 
           rules.each do |rule|
             rule = rule.transform_keys(&:to_s)
             conditions = rule["conditions"]
-            next unless conditions
+            percentage = rule["percentage"]
 
-            if evaluate_rule(conditions, normalized_context)
-              return rule["value"]
+            segment_matches = if conditions.nil? || conditions.empty?
+                                true
+                              else
+                                evaluate_rule(conditions, normalized_context)
+                              end
+
+            next unless segment_matches
+
+            if percentage
+              next unless targeting_key && flag_key
+              next unless evaluate_percentage(targeting_key, flag_key, percentage)
             end
+
+            return rule["value"]
           end
 
-          nil # No rules matched
+          nil
+        end
+
+        # Evaluate percentage rollout using MurmurHash3
+        #
+        # @param targeting_key [String] Unique identifier for the context
+        # @param flag_key [String] The flag being evaluated
+        # @param percentage [Integer] Target percentage (0-100)
+        # @return [Boolean] true if context falls within percentage
+        def evaluate_percentage(targeting_key, flag_key, percentage)
+          percentage = percentage.to_i
+          return false if percentage <= 0
+          return true if percentage >= 100
+
+          hash_input = "#{targeting_key}:#{flag_key}"
+          hash_bytes = MurmurHash3::V128.str_hash(hash_input)
+          hash_code = [hash_bytes[0]].pack("L").unpack1("l")
+          bucket = hash_code.abs % 100
+
+          bucket < percentage
         end
 
         private
@@ -61,6 +94,10 @@ module Subflag
           context.transform_keys(&:to_s).transform_values do |v|
             v.is_a?(Symbol) ? v.to_s : v
           end
+        end
+
+        def extract_targeting_key(context)
+          context["targeting_key"] || context["targetingKey"]
         end
 
         # Evaluate an AND/OR rule block

@@ -28,6 +28,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "openfeature-sdk", ">= 0.3", "< 1.0"
   spec.add_dependency "railties", ">= 6.1"
   spec.add_dependency "actionview", ">= 6.1"
+  spec.add_dependency "murmurhash3", "~> 0.1.6"
 
   # Note: subflag-openfeature-provider is lazily loaded and only required
   # when using backend: :subflag (Subflag Cloud). Users of :active_record

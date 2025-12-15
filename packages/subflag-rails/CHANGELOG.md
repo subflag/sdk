@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2025-12-15
+
+### Added
+
+- **Percentage rollouts for ActiveRecord backend**: Gradually roll out features to a percentage of users
+  - Deterministic assignment using MurmurHash3 (same user always gets the same result)
+  - Combine with segment conditions (e.g., "50% of pro users")
+  - Configure via Admin UI or targeting rules JSON
+- New dependency: `murmurhash3` gem for consistent hashing
+
+### Changed
+
+- `TargetingEngine.evaluate` now accepts optional `flag_key:` parameter (required for percentage rollouts)
+- Targeting rules validation now accepts `percentage` as alternative to `conditions`
+
 ## [0.5.1] - 2025-12-15
 
 ### Fixed

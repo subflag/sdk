@@ -482,6 +482,18 @@ Subflag::Rails::Flag.create!(
 }
 ```
 
+**Percentage rollouts:**
+
+Gradually roll out features to a percentage of users using the Admin UI:
+
+1. Create or edit a flag at `/subflag`
+2. Add a targeting rule with a **percentage** (0-100)
+3. Optionally combine with conditions (e.g., "50% of pro users")
+
+Assignment is deterministic — the same user always gets the same result for the same flag.
+
+> **Note:** Percentage rollouts require `targeting_key` in your user context (typically the user ID).
+
 **How evaluation works:**
 
 1. Flag disabled? → return code default

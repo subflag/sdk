@@ -3,6 +3,7 @@ PATH
   specs:
     subflag-rails (0.5.1)
       actionview (>= 6.1)
+      murmurhash3 (~> 0.1.6)
       openfeature-sdk (>= 0.3, < 1.0)
       railties (>= 6.1)
 
@@ -129,6 +130,7 @@ GEM
     marcel (1.1.0)
     mini_mime (1.1.5)
     minitest (5.26.2)
+    murmurhash3 (0.1.7)
     net-imap (0.5.12)
       date
       net-protocol
