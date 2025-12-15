@@ -200,10 +200,10 @@
   }
 
   function saveRules() {
-    // Clean up rules before saving
+    // Clean up rules before saving - filter out invalid rules
     const cleanedRules = rules.map(rule => {
       const cleaned = { value: rule.value };
-      if (rule.percentage !== undefined && rule.percentage !== null) {
+      if (rule.percentage !== undefined && rule.percentage !== null && rule.percentage !== '') {
         cleaned.percentage = rule.percentage;
       }
       const conditions = rule.conditions?.conditions?.filter(c => c.attribute && c.operator);
@@ -211,57 +211,31 @@
         cleaned.conditions = { type: rule.conditions?.type || "AND", conditions };
       }
       return cleaned;
+    }).filter(rule => rule.conditions || rule.percentage !== undefined);
+
+    const formData = new FormData();
+    formData.append("flag[key]", "<%= @flag.key %>");
+    formData.append("flag[value]", "<%= @flag.value %>");
+    formData.append("flag[value_type]", "<%= @flag.value_type %>");
+    formData.append("flag[enabled]", "<%= @flag.enabled? %>");
+    formData.append("flag[targeting_rules]", JSON.stringify(cleanedRules));
+
+    fetch("<%= flag_path(@flag) %>", {
+      method: "PATCH",
+      headers: {
+        "X-CSRF-Token": "<%= form_authenticity_token %>",
+      },
+      body: formData,
+      redirect: "manual"
+    }).then(response => {
+      if (response.ok || response.type === "opaqueredirect" || response.status === 302) {
+        window.location.reload();
+      } else {
+        alert("Failed to save rules: " + response.status);
+      }
+    }).catch(err => {
+      alert("Error saving rules: " + err.message);
     });
-
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = "<%= flag_path(@flag) %>";
-
-    const methodInput = document.createElement("input");
-    methodInput.type = "hidden";
-    methodInput.name = "_method";
-    methodInput.value = "PATCH";
-    form.appendChild(methodInput);
-
-    const csrfInput = document.createElement("input");
-    csrfInput.type = "hidden";
-    csrfInput.name = "<%= request_forgery_protection_token %>";
-    csrfInput.value = "<%= form_authenticity_token %>";
-    form.appendChild(csrfInput);
-
-    // Send all flag params to preserve other fields
-    const keyInput = document.createElement("input");
-    keyInput.type = "hidden";
-    keyInput.name = "flag[key]";
-    keyInput.value = "<%= @flag.key %>";
-    form.appendChild(keyInput);
-
-    const valueInput = document.createElement("input");
-    valueInput.type = "hidden";
-    valueInput.name = "flag[value]";
-    valueInput.value = "<%= @flag.value %>";
-    form.appendChild(valueInput);
-
-    const typeInput = document.createElement("input");
-    typeInput.type = "hidden";
-    typeInput.name = "flag[value_type]";
-    typeInput.value = "<%= @flag.value_type %>";
-    form.appendChild(typeInput);
-
-    const enabledInput = document.createElement("input");
-    enabledInput.type = "hidden";
-    enabledInput.name = "flag[enabled]";
-    enabledInput.value = "<%= @flag.enabled? %>";
-    form.appendChild(enabledInput);
-
-    const rulesInput = document.createElement("input");
-    rulesInput.type = "hidden";
-    rulesInput.name = "flag[targeting_rules]";
-    rulesInput.value = JSON.stringify(cleanedRules);
-    form.appendChild(rulesInput);
-
-    document.body.appendChild(form);
-    form.submit();
   }
 
   function escapeHtml(str) {
