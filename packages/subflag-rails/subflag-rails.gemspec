@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
   spec.metadata["documentation_uri"] = "https://subflag.com/docs/ruby"
   spec.metadata["rubygems_mfa_required"] = "true"
 
-  spec.files = Dir.glob("{lib,sig}/**/*") + %w[LICENSE.txt README.md CHANGELOG.md]
+  spec.files = Dir.glob("{app,config,lib,sig}/**/*") + %w[LICENSE.txt README.md CHANGELOG.md]
   spec.require_paths = ["lib"]
 
   # Runtime dependencies

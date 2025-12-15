@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    subflag-rails (0.5.0)
+    subflag-rails (0.5.1)
       actionview (>= 6.1)
       openfeature-sdk (>= 0.3, < 1.0)
       railties (>= 6.1)

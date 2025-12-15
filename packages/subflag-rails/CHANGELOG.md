@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2025-12-15
+
+### Fixed
+
+- **Admin UI not loading**: Include `app/` and `config/` directories in gem package
+  - Previously only `lib/` was packaged, causing mounted Engine to fail
+
 ## [0.5.0] - 2025-12-11
 
 ### Added
