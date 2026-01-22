@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.3] - 2026-01-22
+
+### Fixed
+
+- **Full CSP compliance for Admin UI**: Remove all inline event handlers
+  - Use event delegation pattern with `data-action` attributes
+  - Works with strict `script-src 'nonce-xxx'` policies (no `'unsafe-inline'` required)
+
 ## [0.6.2] - 2026-01-22
 
 ### Fixed

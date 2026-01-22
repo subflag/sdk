@@ -8,7 +8,7 @@
   <%= render "form", flag: @flag %>
 </div>
 
-<div class="card">
+<div class="card" id="targeting-card">
   <h2>Targeting Rules</h2>
   <p class="text-muted mb-10">Rules are evaluated in order. First match wins. If no rules match, the default value is used.</p>
 
@@ -16,12 +16,12 @@
     <!-- Rules rendered by JS -->
   </div>
 
-  <button type="button" class="btn mt-10" onclick="addRule()">+ Add Rule</button>
+  <button type="button" class="btn mt-10" data-action="add-rule">+ Add Rule</button>
 
   <input type="hidden" name="targeting_rules_json" id="targeting-rules-json" value="<%= @flag.targeting_rules.to_json %>">
 
   <div class="mt-10">
-    <button type="button" class="btn btn-primary" onclick="saveRules()">Save Rules</button>
+    <button type="button" class="btn btn-primary" data-action="save-rules">Save Rules</button>
   </div>
 </div>
 
@@ -86,6 +86,66 @@
       }
     }
     renderRules();
+    setupEventDelegation();
+  }
+
+  function setupEventDelegation() {
+    const container = document.getElementById("targeting-card");
+
+    // Handle clicks (buttons)
+    container.addEventListener("click", function(e) {
+      const target = e.target.closest("[data-action]");
+      if (!target) return;
+
+      const action = target.dataset.action;
+      const ruleIndex = parseInt(target.dataset.ruleIndex, 10);
+      const condIndex = parseInt(target.dataset.condIndex, 10);
+
+      switch (action) {
+        case "add-rule":
+          addRule();
+          break;
+        case "remove-rule":
+          removeRule(ruleIndex);
+          break;
+        case "add-condition":
+          addCondition(ruleIndex);
+          break;
+        case "remove-condition":
+          removeCondition(ruleIndex, condIndex);
+          break;
+        case "save-rules":
+          saveRules();
+          break;
+      }
+    });
+
+    // Handle input changes
+    container.addEventListener("change", function(e) {
+      const target = e.target;
+      const action = target.dataset.action;
+      if (!action) return;
+
+      const ruleIndex = parseInt(target.dataset.ruleIndex, 10);
+      const condIndex = parseInt(target.dataset.condIndex, 10);
+      const field = target.dataset.field;
+      const value = target.value;
+
+      switch (action) {
+        case "update-rule-value":
+          updateRuleValue(ruleIndex, value);
+          break;
+        case "update-rule-percentage":
+          updateRulePercentage(ruleIndex, value);
+          break;
+        case "update-logic":
+          updateLogic(ruleIndex, value);
+          break;
+        case "update-condition":
+          updateCondition(ruleIndex, condIndex, field, value);
+          break;
+      }
+    });
   }
 
   function renderRules() {
@@ -103,26 +163,26 @@
       <div class="rule" data-rule-index="${ruleIndex}">
         <div class="rule-header">
           <strong>Rule ${ruleIndex + 1}</strong>
-          <button type="button" class="remove-btn" onclick="removeRule(${ruleIndex})">&times;</button>
+          <button type="button" class="remove-btn" data-action="remove-rule" data-rule-index="${ruleIndex}">&times;</button>
         </div>
         <div class="rule-value">
           <label>Return value:</label>
-          <input type="text" value="${escapeHtml(rule.value || '')}" onchange="updateRuleValue(${ruleIndex}, this.value)" placeholder="value when matched">
+          <input type="text" value="${escapeHtml(rule.value || '')}" data-action="update-rule-value" data-rule-index="${ruleIndex}" placeholder="value when matched">
         </div>
         <div class="rule-percentage">
           <label>Percentage rollout:</label>
-          <input type="number" min="0" max="100" value="${percentage ?? ''}" onchange="updateRulePercentage(${ruleIndex}, this.value)" placeholder="">
+          <input type="number" min="0" max="100" value="${percentage ?? ''}" data-action="update-rule-percentage" data-rule-index="${ruleIndex}" placeholder="">
           <span>% of users</span>
           <small style="color: #666;">(leave empty to match all)</small>
         </div>
         <div class="rule-logic" ${!hasConditions && percentage ? 'style="opacity: 0.5;"' : ''}>
-          <label><input type="radio" name="logic-${ruleIndex}" value="AND" ${logicType === 'AND' ? 'checked' : ''} onchange="updateLogic(${ruleIndex}, 'AND')"> ALL match</label>
-          <label><input type="radio" name="logic-${ruleIndex}" value="OR" ${logicType === 'OR' ? 'checked' : ''} onchange="updateLogic(${ruleIndex}, 'OR')"> ANY match</label>
+          <label><input type="radio" name="logic-${ruleIndex}" value="AND" ${logicType === 'AND' ? 'checked' : ''} data-action="update-logic" data-rule-index="${ruleIndex}"> ALL match</label>
+          <label><input type="radio" name="logic-${ruleIndex}" value="OR" ${logicType === 'OR' ? 'checked' : ''} data-action="update-logic" data-rule-index="${ruleIndex}"> ANY match</label>
         </div>
         <div class="conditions" id="conditions-${ruleIndex}">
           ${conditions.map((c, cIndex) => renderCondition(c, ruleIndex, cIndex)).join("")}
         </div>
-        <button type="button" class="btn btn-sm" onclick="addCondition(${ruleIndex})">+ Add Condition</button>
+        <button type="button" class="btn btn-sm" data-action="add-condition" data-rule-index="${ruleIndex}">+ Add Condition</button>
         <small style="display: block; margin-top: 5px; color: #666;">${hasConditions && percentage ? 'User must match conditions AND be in percentage' : ''}</small>
       </div>
     `;
@@ -137,12 +197,12 @@
 
     return `
       <div class="condition">
-        <input type="text" placeholder="attribute" value="${escapeHtml(condition.attribute || '')}" onchange="updateCondition(${ruleIndex}, ${condIndex}, 'attribute', this.value)">
-        <select onchange="updateCondition(${ruleIndex}, ${condIndex}, 'operator', this.value)">
+        <input type="text" placeholder="attribute" value="${escapeHtml(condition.attribute || '')}" data-action="update-condition" data-rule-index="${ruleIndex}" data-cond-index="${condIndex}" data-field="attribute">
+        <select data-action="update-condition" data-rule-index="${ruleIndex}" data-cond-index="${condIndex}" data-field="operator">
           ${operatorOptions}
         </select>
-        <input type="text" placeholder="value" value="${escapeHtml(valueDisplay)}" onchange="updateCondition(${ruleIndex}, ${condIndex}, 'value', this.value)">
-        <button type="button" class="remove-btn" onclick="removeCondition(${ruleIndex}, ${condIndex})">&times;</button>
+        <input type="text" placeholder="value" value="${escapeHtml(valueDisplay)}" data-action="update-condition" data-rule-index="${ruleIndex}" data-cond-index="${condIndex}" data-field="value">
+        <button type="button" class="remove-btn" data-action="remove-condition" data-rule-index="${ruleIndex}" data-cond-index="${condIndex}">&times;</button>
       </div>
     `;
   }
