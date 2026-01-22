@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2] - 2026-01-22
+
+### Fixed
+
+- **CSP nonce support for Admin UI**: Use `javascript_tag nonce: true` for inline scripts
+  - Fixes admin UI not loading on apps with strict Content Security Policy headers
+
 ## [0.6.0] - 2025-12-15
 
 ### Added
