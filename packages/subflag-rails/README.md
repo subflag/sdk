@@ -64,7 +64,7 @@ Dashboard, environments, percentage rollouts, and user targeting.
 
 ```ruby
 gem "subflag-rails"
-gem "subflag-openfeature-provider"
+gem "subflag-openfeature-provider", ">= 0.3.2"
 ```
 
 ```bash

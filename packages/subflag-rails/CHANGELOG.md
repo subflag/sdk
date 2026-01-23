@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.4] - 2026-01-23
+
+### Changed
+
+- Updated documentation to recommend `subflag-openfeature-provider >= 0.3.2`
+  - v0.3.2 fixes provider initialization error with OpenFeature SDK
+
 ## [0.6.3] - 2026-01-22
 
 ### Fixed

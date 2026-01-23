@@ -33,7 +33,7 @@ Gem::Specification.new do |spec|
   # Note: subflag-openfeature-provider is lazily loaded and only required
   # when using backend: :subflag (Subflag Cloud). Users of :active_record
   # or :memory backends don't need it. If using Subflag Cloud, add to Gemfile:
-  #   gem 'subflag-openfeature-provider', '~> 0.3'
+  #   gem 'subflag-openfeature-provider', '>= 0.3.2'
 
   # Development dependencies
   spec.add_development_dependency "bundler", "~> 2.0"
