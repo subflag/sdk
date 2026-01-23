@@ -34,9 +34,9 @@ module Subflag
   #   )
   class Provider
     # Provider metadata for OpenFeature SDK
-    # @return [Hash] Provider metadata
+    # @return [OpenFeature::SDK::Provider::ProviderMetadata] Provider metadata
     def metadata
-      { name: "Subflag Ruby Provider" }
+      OpenFeature::SDK::Provider::ProviderMetadata.new(name: "Subflag Ruby Provider")
     end
 
     # @param api_url [String] The base URL of the Subflag API

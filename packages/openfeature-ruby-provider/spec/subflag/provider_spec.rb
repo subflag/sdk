@@ -6,8 +6,9 @@ RSpec.describe Subflag::Provider do
   let(:provider) { described_class.new(api_url: TestHelpers::API_URL, api_key: TestHelpers::API_KEY) }
 
   describe "#metadata" do
-    it "returns provider name" do
-      expect(provider.metadata).to eq({ name: "Subflag Ruby Provider" })
+    it "returns provider metadata with name" do
+      expect(provider.metadata).to be_a(OpenFeature::SDK::Provider::ProviderMetadata)
+      expect(provider.metadata.name).to eq("Subflag Ruby Provider")
     end
   end
 

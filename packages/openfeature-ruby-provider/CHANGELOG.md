@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2] - 2026-01-23
+
+### Fixed
+
+- **Provider metadata interface**: Return `ProviderMetadata` object instead of Hash
+  - Fixes `undefined method 'name' for Hash` error during provider initialization
+
 ## [0.3.1] - 2025-12-07
 
 ### Fixed
